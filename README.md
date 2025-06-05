@@ -2,6 +2,21 @@
 
 A Model Context Protocol (MCP) server that provides seamless integration with Microsoft Graph APIs, enabling AI assistants to interact with Microsoft Teams, users, and organizational data.
 
+## 📦 Installation
+
+To use this MCP server in Cursor/Claude/VS Code, add the following configuration:
+
+```json
+{
+  "mcpServers": {
+    "teams-mcp": {
+      "command": "npx",
+      "args": ["-y", "@floriscornel/teams-mcp@latest"]
+    }
+  }
+}
+```
+
 ## 🚀 Features
 
 ### 🔐 Authentication
