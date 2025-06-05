@@ -1,0 +1,31 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Development files
+auth-cli.js
+tsconfig.json
+vitest.config.ts
+biome.json
+bun.lock
+
+# Git and editor files
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and temp files
+*.log
+.DS_Store
+Thumbs.db
+
+# Test files
+__tests__/
+*.test.*
+*.spec.*
+
+# Documentation source
+docs/ 

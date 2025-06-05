@@ -1,0 +1,59 @@
+{
+  "name": "@floriscornel/teams-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Microsoft Graph Teams integration",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "teams-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun run clean && bun run compile",
+    "clean": "rm -rf dist",
+    "compile": "tsc",
+    "dev": "bun run --hot src/index.ts",
+    "auth": "node dist/index.js authenticate",
+    "auth:check": "node dist/index.js check",
+    "auth:logout": "node dist/index.js logout",
+    "lint": "biome check .",
+    "lint:fix": "biome check --apply .",
+    "format": "biome format --write .",
+    "bump": "bunx npm-check-updates -u -p bun",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": ["mcp", "microsoft-graph", "teams", "model-context-protocol"],
+  "author": "Floris Cornel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/floriscornel/teams-mcp.git"
+  },
+  "homepage": "https://github.com/floriscornel/teams-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/floriscornel/teams-mcp/issues"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.10.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@microsoft/microsoft-graph-types": "^2.40.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.51"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.15.29",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  }
+}
