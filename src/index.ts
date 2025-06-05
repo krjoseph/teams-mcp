@@ -3,9 +3,9 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { DeviceCodeCredential } from "@azure/identity";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { DeviceCodeCredential } from "@azure/identity";
 import { GraphService } from "./services/graph.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerChatTools } from "./tools/chats.js";
@@ -66,7 +66,10 @@ async function authenticate() {
       console.log("   The server will automatically use these credentials.");
     }
   } catch (error) {
-    console.error("\n❌ Authentication failed:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "\n❌ Authentication failed:",
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }
@@ -119,7 +122,7 @@ async function startMcpServer() {
   // Create MCP server
   const server = new McpServer({
     name: "teams-mcp",
-    version: "0.1.0",
+    version: "0.1.1",
   });
 
   // Initialize Graph service (singleton)
@@ -161,8 +164,12 @@ async function main() {
       console.log("Microsoft Graph MCP Server");
       console.log("");
       console.log("Usage:");
-      console.log("  npx @floriscornel/teams-mcp@latest authenticate # Authenticate with Microsoft");
-      console.log("  npx @floriscornel/teams-mcp@latest check        # Check authentication status");
+      console.log(
+        "  npx @floriscornel/teams-mcp@latest authenticate # Authenticate with Microsoft"
+      );
+      console.log(
+        "  npx @floriscornel/teams-mcp@latest check        # Check authentication status"
+      );
       console.log("  npx @floriscornel/teams-mcp@latest logout       # Clear authentication");
       console.log("  npx @floriscornel/teams-mcp@latest              # Start MCP server (default)");
       return;

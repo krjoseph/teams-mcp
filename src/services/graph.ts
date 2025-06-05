@@ -44,7 +44,9 @@ export class GraphService {
         if (this.authInfo.expiresAt) {
           const expiresAt = new Date(this.authInfo.expiresAt);
           if (expiresAt <= new Date()) {
-            console.log("Token has expired. Please re-authenticate with: npx @floriscornel/teams-mcp@latest authenticate");
+            console.log(
+              "Token has expired. Please re-authenticate with: npx @floriscornel/teams-mcp@latest authenticate"
+            );
             return;
           }
         }

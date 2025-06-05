@@ -1,17 +1,13 @@
 {
   "name": "@floriscornel/teams-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Microsoft Graph Teams integration",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "teams-mcp": "dist/index.js"
   },
-  "files": [
-    "dist/**/*",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**/*", "README.md", "package.json"],
   "publishConfig": {
     "access": "public"
   },
