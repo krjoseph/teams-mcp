@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    setupFiles: ["./src/test-utils/vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     coverage: {
@@ -15,10 +16,30 @@ export default defineConfig({
         "coverage/",
         "**/*.d.ts",
         "**/*.config.{js,ts}",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/test-utils/**",
         "**/index.ts",
       ],
+      thresholds: {
+        global: {
+          branches: 80,
+          functions: 80,
+          lines: 80,
+          statements: 80,
+        },
+      },
     },
-    testTimeout: 10000,
+    testTimeout: 15000,
     hookTimeout: 10000,
+    // Isolate tests to prevent interference
+    isolate: true,
+    // Pool options for better performance
+    pool: "threads",
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });

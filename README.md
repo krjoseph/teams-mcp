@@ -66,19 +66,19 @@ To use this MCP server in Cursor/Claude/VS Code, add the following configuration
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Build the project
-bun run build
+npm run build
 
 # Set up authentication
-bun run auth
+npm run auth
 ```
 
 ## 🔧 Configuration
 
 ### Prerequisites
-- Node.js 18+ or Bun 1.0+
+- Node.js 18+
 - Microsoft 365 account with appropriate permissions
 - Azure App Registration with Microsoft Graph permissions
 
@@ -101,10 +101,10 @@ bun run auth
 ### Starting the Server
 ```bash
 # Development mode with hot reload
-bun run dev
+npm run dev
 
 # Production mode
-bun run build && node dist/index.js
+npm run build && node dist/index.js
 ```
 
 ### Available MCP Tools
