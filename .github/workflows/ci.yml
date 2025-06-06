@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -37,16 +39,26 @@ jobs:
       - name: Run type checking
         run: npm run compile
 
-      - name: Run tests
-        run: npm run test:coverage
+      - name: Run tests with JUnit output
+        run: |
+          # Run tests with coverage and generate JUnit XML for Codecov Test Analytics
+          npm run test:coverage:ci
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
-          file: ./coverage/coverage-final.json
-          fail_ci_if_error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./test-results.xml
 
       - name: Build
         run: npm run build
