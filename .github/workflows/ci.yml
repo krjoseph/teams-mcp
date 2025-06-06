@@ -27,7 +27,9 @@ jobs:
         run: npm ci
 
       - name: Run linting and formatting
-        run: npm run lint
+        run: |
+          # Install and run Biome directly
+          npx @biomejs/biome@1.9.4 check .
 
       - name: Run type checking
         run: npm run compile
