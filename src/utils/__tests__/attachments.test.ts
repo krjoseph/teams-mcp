@@ -1,5 +1,7 @@
+import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GraphService } from "../../services/graph.js";
+import { server } from "../../test-utils/setup.js";
 import {
   getFileExtensionFromMimeType,
   imageUrlToBase64,
@@ -15,14 +17,41 @@ const mockClient = {
   api: vi.fn(),
 };
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
-
 describe("Attachment Utilities", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (mockGraphService.getClient as any).mockResolvedValue(mockClient);
+
+    // Add MSW handlers for image URL tests
+    server.use(
+      // Handler for successful image fetch
+      http.get("https://example.com/image.jpg", () => {
+        const mockArrayBuffer = new ArrayBuffer(4);
+        return new HttpResponse(mockArrayBuffer, {
+          headers: { "content-type": "image/jpeg" },
+        });
+      }),
+
+      // Handler for image without extension
+      http.get("https://example.com/image", () => {
+        const mockArrayBuffer = new ArrayBuffer(4);
+        return new HttpResponse(mockArrayBuffer);
+      }),
+
+      // Handler for non-existent image
+      http.get("https://example.com/nonexistent.jpg", () => {
+        return new HttpResponse(null, { status: 404, statusText: "Not Found" });
+      }),
+
+      // Handler for unsupported content type
+      http.get("https://example.com/text.txt", () => {
+        return new HttpResponse("text content", {
+          headers: { "content-type": "text/plain" },
+        });
+      })
+
+      // Handler for network error simulation - we'll handle this differently in the test
+    );
   });
 
   describe("uploadImageAsHostedContent", () => {
@@ -164,35 +193,15 @@ describe("Attachment Utilities", () => {
 
   describe("imageUrlToBase64", () => {
     it("should convert image URL to base64", async () => {
-      const mockArrayBuffer = new ArrayBuffer(4);
-      const mockResponse = {
-        ok: true,
-        headers: {
-          get: vi.fn().mockReturnValue("image/jpeg"),
-        },
-        arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
-      };
-
-      mockFetch.mockResolvedValue(mockResponse);
-
       const result = await imageUrlToBase64("https://example.com/image.jpg");
 
       expect(result).toEqual({
         data: "AAAAAA==", // Base64 of empty 4-byte buffer
         contentType: "image/jpeg",
       });
-
-      expect(mockFetch).toHaveBeenCalledWith("https://example.com/image.jpg");
     });
 
     it("should handle fetch errors", async () => {
-      const mockResponse = {
-        ok: false,
-        statusText: "Not Found",
-      };
-
-      mockFetch.mockResolvedValue(mockResponse);
-
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
         // Mock implementation - do nothing
       });
@@ -209,15 +218,6 @@ describe("Attachment Utilities", () => {
     });
 
     it("should reject unsupported content types", async () => {
-      const mockResponse = {
-        ok: true,
-        headers: {
-          get: vi.fn().mockReturnValue("text/plain"),
-        },
-      };
-
-      mockFetch.mockResolvedValue(mockResponse);
-
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
         // Mock implementation - do nothing
       });
@@ -234,17 +234,6 @@ describe("Attachment Utilities", () => {
     });
 
     it("should use default content type when header is missing", async () => {
-      const mockArrayBuffer = new ArrayBuffer(4);
-      const mockResponse = {
-        ok: true,
-        headers: {
-          get: vi.fn().mockReturnValue(null),
-        },
-        arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
-      };
-
-      mockFetch.mockResolvedValue(mockResponse);
-
       const result = await imageUrlToBase64("https://example.com/image");
 
       expect(result).toEqual({
@@ -254,13 +243,18 @@ describe("Attachment Utilities", () => {
     });
 
     it("should handle network errors", async () => {
-      mockFetch.mockRejectedValue(new Error("Network error"));
+      // For network errors, we'll add a temporary handler that throws an error
+      server.use(
+        http.get("https://example.com/network-error.jpg", () => {
+          throw new Error("Network error");
+        })
+      );
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {
         // Mock implementation - do nothing
       });
 
-      const result = await imageUrlToBase64("https://example.com/image.jpg");
+      const result = await imageUrlToBase64("https://example.com/network-error.jpg");
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(

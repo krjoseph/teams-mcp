@@ -11,14 +11,8 @@ import type {
   MessageSummary,
   User,
 } from "../types/graph.js";
-import {
-  type ImageAttachment,
-  imageUrlToBase64,
-  isValidImageType,
-  uploadImageAsHostedContent,
-} from "../utils/attachments.js";
-import { markdownToHtml, sanitizeHtml } from "../utils/markdown.js";
-import { type UserInfo, parseMentions, processMentionsInHtml } from "../utils/users.js";
+import { markdownToHtml } from "../utils/markdown.js";
+import { processMentionsInHtml } from "../utils/users.js";
 
 export function registerChatTools(server: McpServer, graphService: GraphService) {
   // List user's chats
@@ -208,25 +202,8 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         )
         .optional()
         .describe("Array of @mentions to include in the message"),
-      imageUrl: z.string().optional().describe("URL of an image to attach to the message"),
-      imageData: z.string().optional().describe("Base64 encoded image data to attach"),
-      imageContentType: z
-        .string()
-        .optional()
-        .describe("MIME type of the image (e.g., 'image/jpeg', 'image/png')"),
-      imageFileName: z.string().optional().describe("Name for the attached image file"),
     },
-    async ({
-      chatId,
-      message,
-      importance = "normal",
-      format = "text",
-      mentions,
-      imageUrl,
-      imageData,
-      imageContentType,
-      imageFileName,
-    }) => {
+    async ({ chatId, message, importance = "normal", format = "text", mentions }) => {
       try {
         const client = await graphService.getClient();
 
@@ -284,20 +261,6 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
 
           // Ensure we're using HTML content type when mentions are present
           contentType = "html";
-        }
-
-        // For chats, we can't use hosted content like in channels, so we'll handle images differently
-        // Note: Chat messages don't support the same hosted content approach as channel messages
-        if (imageUrl || imageData) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "❌ Image attachments are not supported in chat messages. Use channel messages for image attachments.",
-              },
-            ],
-            isError: true,
-          };
         }
 
         // Build message payload

@@ -18,13 +18,8 @@ import {
   isValidImageType,
   uploadImageAsHostedContent,
 } from "../utils/attachments.js";
-import { markdownToHtml, sanitizeHtml } from "../utils/markdown.js";
-import {
-  type UserInfo,
-  parseMentions,
-  processMentionsInHtml,
-  searchUsers,
-} from "../utils/users.js";
+import { markdownToHtml } from "../utils/markdown.js";
+import { type UserInfo, processMentionsInHtml, searchUsers } from "../utils/users.js";
 
 export function registerTeamsTools(server: McpServer, graphService: GraphService) {
   // List user's teams
