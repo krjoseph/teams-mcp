@@ -761,7 +761,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
 
   // Search users for @mentions
   server.tool(
-    "search_users",
+    "search_users_for_mentions",
     {
       query: z.string().describe("Search query (name or email)"),
       limit: z
