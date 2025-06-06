@@ -11,7 +11,14 @@ import type {
   MessageSummary,
   User,
 } from "../types/graph.js";
+import {
+  type ImageAttachment,
+  imageUrlToBase64,
+  isValidImageType,
+  uploadImageAsHostedContent,
+} from "../utils/attachments.js";
 import { markdownToHtml, sanitizeHtml } from "../utils/markdown.js";
+import { type UserInfo, parseMentions, processMentionsInHtml } from "../utils/users.js";
 
 export function registerChatTools(server: McpServer, graphService: GraphService) {
   // List user's chats
@@ -190,8 +197,36 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       message: z.string().describe("Message content"),
       importance: z.enum(["normal", "high", "urgent"]).optional().describe("Message importance"),
       format: z.enum(["text", "markdown"]).optional().describe("Message format (text or markdown)"),
+      mentions: z
+        .array(
+          z.object({
+            mention: z
+              .string()
+              .describe("The @mention text (e.g., 'john.doe' or 'john.doe@company.com')"),
+            userId: z.string().describe("Azure AD User ID of the mentioned user"),
+          })
+        )
+        .optional()
+        .describe("Array of @mentions to include in the message"),
+      imageUrl: z.string().optional().describe("URL of an image to attach to the message"),
+      imageData: z.string().optional().describe("Base64 encoded image data to attach"),
+      imageContentType: z
+        .string()
+        .optional()
+        .describe("MIME type of the image (e.g., 'image/jpeg', 'image/png')"),
+      imageFileName: z.string().optional().describe("Name for the attached image file"),
     },
-    async ({ chatId, message, importance = "normal", format = "text" }) => {
+    async ({
+      chatId,
+      message,
+      importance = "normal",
+      format = "text",
+      mentions,
+      imageUrl,
+      imageData,
+      imageContentType,
+      imageFileName,
+    }) => {
       try {
         const client = await graphService.getClient();
 
@@ -207,7 +242,66 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           contentType = "text";
         }
 
-        const newMessage = {
+        // Process @mentions if provided
+        const mentionMappings: Array<{ mention: string; userId: string; displayName: string }> = [];
+        if (mentions && mentions.length > 0) {
+          // Convert provided mentions to mappings with display names
+          for (const mention of mentions) {
+            try {
+              // Get user info to get display name
+              const userResponse = await client
+                .api(`/users/${mention.userId}`)
+                .select("displayName")
+                .get();
+              mentionMappings.push({
+                mention: mention.mention,
+                userId: mention.userId,
+                displayName: userResponse.displayName || mention.mention,
+              });
+            } catch (error) {
+              console.warn(
+                `Could not resolve user ${mention.userId}, using mention text as display name`
+              );
+              mentionMappings.push({
+                mention: mention.mention,
+                userId: mention.userId,
+                displayName: mention.mention,
+              });
+            }
+          }
+        }
+
+        // Process mentions in HTML content
+        let finalMentions: Array<{
+          id: number;
+          mentionText: string;
+          mentioned: { user: { id: string } };
+        }> = [];
+        if (mentionMappings.length > 0) {
+          const result = processMentionsInHtml(content, mentionMappings);
+          content = result.content;
+          finalMentions = result.mentions;
+
+          // Ensure we're using HTML content type when mentions are present
+          contentType = "html";
+        }
+
+        // For chats, we can't use hosted content like in channels, so we'll handle images differently
+        // Note: Chat messages don't support the same hosted content approach as channel messages
+        if (imageUrl || imageData) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "❌ Image attachments are not supported in chat messages. Use channel messages for image attachments.",
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Build message payload
+        const messagePayload: any = {
           body: {
             content,
             contentType,
@@ -215,15 +309,26 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           importance,
         };
 
+        if (finalMentions.length > 0) {
+          messagePayload.mentions = finalMentions;
+        }
+
         const result = (await client
           .api(`/me/chats/${chatId}/messages`)
-          .post(newMessage)) as ChatMessage;
+          .post(messagePayload)) as ChatMessage;
+
+        // Build success message
+        const successText = `✅ Message sent successfully. Message ID: ${result.id}${
+          finalMentions.length > 0
+            ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
+            : ""
+        }`;
 
         return {
           content: [
             {
               type: "text" as const,
-              text: `✅ Message sent successfully. Message ID: ${result.id}`,
+              text: successText,
             },
           ],
         };
