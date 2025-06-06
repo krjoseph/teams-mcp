@@ -7,27 +7,54 @@ on:
     branches: [ main ]
 
 jobs:
-  lint-and-format:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          # Clean install to handle platform-specific binary issues
+          rm -rf node_modules package-lock.json
+          npm install
 
-      - name: Run Biome
-        run: bun biome ci src/
+      - name: Run linting and formatting
+        run: |
+          # Install and run Biome directly
+          npx @biomejs/biome@1.9.4 check .
+
+      - name: Run type checking
+        run: npm run compile
+
+      - name: Run tests
+        run: npm run test:coverage
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage/coverage-final.json
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build
-        run: bun run build
+        run: npm run build
 
-      - name: Test CLI
+      - name: Test CLI functionality
         run: |
           node dist/index.js --help
           node dist/index.js check 
+
+      - name: Security audit
+        run: npm audit --audit-level moderate

@@ -8,7 +8,6 @@ auth-cli.js
 tsconfig.json
 vitest.config.ts
 biome.json
-bun.lock
 
 # Git and editor files
 .git/

@@ -1,5 +1,11 @@
 # Teams MCP
 
+[![npm version](https://img.shields.io/npm/v/@floriscornel/teams-mcp.svg)](https://www.npmjs.com/package/@floriscornel/teams-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@floriscornel/teams-mcp.svg)](https://www.npmjs.com/package/@floriscornel/teams-mcp)
+[![codecov](https://codecov.io/gh/floriscornel/teams-mcp/graph/badge.svg)](https://app.codecov.io/gh/floriscornel/teams-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/floriscornel/teams-mcp.svg)](https://github.com/floriscornel/teams-mcp/stargazers)
+
 A Model Context Protocol (MCP) server that provides seamless integration with Microsoft Graph APIs, enabling AI assistants to interact with Microsoft Teams, users, and organizational data.
 
 ## 📦 Installation
@@ -66,19 +72,19 @@ To use this MCP server in Cursor/Claude/VS Code, add the following configuration
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Build the project
-bun run build
+npm run build
 
 # Set up authentication
-bun run auth
+npm run auth
 ```
 
 ## 🔧 Configuration
 
 ### Prerequisites
-- Node.js 18+ or Bun 1.0+
+- Node.js 18+
 - Microsoft 365 account with appropriate permissions
 - Azure App Registration with Microsoft Graph permissions
 
@@ -101,10 +107,10 @@ bun run auth
 ### Starting the Server
 ```bash
 # Development mode with hot reload
-bun run dev
+npm run dev
 
 # Production mode
-bun run build && node dist/index.js
+npm run build && node dist/index.js
 ```
 
 ### Available MCP Tools

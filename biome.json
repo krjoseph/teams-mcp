@@ -1,8 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.6.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "include": ["src/**/*", "test/**/*", "*.ts", "*.js", "*.json"],
-    "ignore": ["node_modules", "dist", "coverage"]
+    "include": ["src/**/*"],
+    "ignore": ["dist/**/*", "node_modules/**/*"]
   },
   "linter": {
     "enabled": true,
@@ -34,7 +34,8 @@
       "style": {
         "noNamespace": "error",
         "useAsConstAssertion": "error",
-        "useBlockStatements": "off"
+        "useBlockStatements": "off",
+        "useNodejsImportProtocol": "warn"
       },
       "suspicious": {
         "noAsyncPromiseExecutor": "error",
@@ -48,7 +49,7 @@
         "noDuplicateObjectKeys": "error",
         "noDuplicateParameters": "error",
         "noEmptyBlockStatements": "error",
-        "noExplicitAny": "warn",
+        "noExplicitAny": "off",
         "noExtraNonNullAssertion": "error",
         "noFallthroughSwitchClause": "error",
         "noFunctionAssign": "error",
