@@ -357,6 +357,149 @@ describe("Teams Tools", () => {
     });
   });
 
+  describe("get_channel_message_replies tool", () => {
+    it("should register get_channel_message_replies tool with correct schema", () => {
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("get_channel_message_replies");
+      expect(tool).toBeDefined();
+      expect(tool.schema.teamId).toBeDefined();
+      expect(tool.schema.channelId).toBeDefined();
+      expect(tool.schema.messageId).toBeDefined();
+      expect(tool.schema.limit).toBeDefined();
+    });
+
+    it("should get message replies", async () => {
+      const repliesResponse: GraphApiResponse<ChatMessage> = {
+        value: [mockChatMessage],
+      };
+
+      mockClient.api().get.mockResolvedValue(repliesResponse);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("get_channel_message_replies");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        limit: 10,
+      });
+
+      expect(mockClient.api).toHaveBeenCalledWith(
+        "/teams/test-team-id/channels/test-channel-id/messages/test-message-id/replies?$top=10"
+      );
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.parentMessageId).toBe("test-message-id");
+      expect(response.totalReplies).toBe(1);
+      expect(response.replies).toHaveLength(1);
+    });
+
+    it("should handle no replies found", async () => {
+      mockClient.api().get.mockResolvedValue({ value: [] });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("get_channel_message_replies");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+      });
+
+      expect(result.content[0].text).toBe("No replies found for this message.");
+    });
+
+    it("should handle get replies errors", async () => {
+      mockClient.api().get.mockRejectedValue(new Error("Message not found"));
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("get_channel_message_replies");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "invalid-message-id",
+      });
+
+      expect(result.content[0].text).toContain("❌ Error: Message not found");
+    });
+  });
+
+  describe("reply_to_channel_message tool", () => {
+    it("should register reply_to_channel_message tool with correct schema", () => {
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      expect(tool).toBeDefined();
+      expect(tool.schema.teamId).toBeDefined();
+      expect(tool.schema.channelId).toBeDefined();
+      expect(tool.schema.messageId).toBeDefined();
+      expect(tool.schema.message).toBeDefined();
+      expect(tool.schema.importance).toBeDefined();
+    });
+
+    it("should reply to a message with default importance", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-123" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "This is a reply",
+      });
+
+      expect(mockClient.api).toHaveBeenCalledWith(
+        "/teams/test-team-id/channels/test-channel-id/messages/test-message-id/replies"
+      );
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "This is a reply",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
+      expect(result.content[0].text).toBe("✅ Reply sent successfully. Reply ID: reply-123");
+    });
+
+    it("should reply to a message with custom importance", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-456" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "Urgent reply!",
+        importance: "urgent",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Urgent reply!",
+          contentType: "text",
+        },
+        importance: "urgent",
+      });
+    });
+
+    it("should handle reply errors", async () => {
+      mockClient.api().post.mockRejectedValue(new Error("Reply failed"));
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      const result = await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "Test reply",
+      });
+
+      expect(result.content[0].text).toContain("❌ Error: Reply failed");
+    });
+  });
+
   describe("list_team_members tool", () => {
     it("should register list_team_members tool with correct schema", () => {
       registerTeamsTools(mockServer, mockGraphService);
@@ -406,6 +549,16 @@ describe("Teams Tools", () => {
       const result = await tool.handler({ teamId: "test-team-id" });
 
       expect(result.content[0].text).toBe("No members found in this team.");
+    });
+
+    it("should handle list members errors", async () => {
+      mockClient.api().get.mockRejectedValue(new Error("Team not found"));
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("list_team_members");
+      const result = await tool.handler({ teamId: "invalid-team-id" });
+
+      expect(result.content[0].text).toContain("❌ Error: Team not found");
     });
   });
 

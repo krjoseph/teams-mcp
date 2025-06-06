@@ -22,9 +22,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=test-results.xml",
     "test:ui": "vitest --ui",
     "lint": "biome check .",
-    "lint:fix": "biome check --apply .",
+    "lint:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
     "bump": "npx npm-check-updates -u",
     "prepublishOnly": "npm run build"
