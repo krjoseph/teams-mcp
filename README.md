@@ -77,10 +77,11 @@ The following tools now support rich message formatting in Teams channels and ch
 
 You can specify the `format` parameter to control the message formatting:
 - `text` (default): Plain text
-- `markdown`: Markdown formatting (bold, italic, lists, links, code, etc.)
-- `html`: Basic HTML formatting (tags, links, images, etc.)
+- `markdown`: Markdown formatting (bold, italic, lists, links, code, etc.) - converted to sanitized HTML
 
-If `format` is not specified or is invalid, the message will be sent as plain text.
+When `format` is set to `markdown`, the message content is converted to HTML using a secure markdown parser and sanitized to remove potentially dangerous content before being sent to Teams.
+
+If `format` is not specified, the message will be sent as plain text.
 
 ### Example Usage
 
@@ -88,7 +89,7 @@ If `format` is not specified or is invalid, the message will be sent as plain te
 {
   "teamId": "...",
   "channelId": "...",
-  "message": "**Hello, world!** _This is a test message._",
+  "message": "**Bold text** and _italic text_\n\n- List item 1\n- List item 2\n\n[Link](https://example.com)",
   "format": "markdown"
 }
 ```
@@ -96,18 +97,28 @@ If `format` is not specified or is invalid, the message will be sent as plain te
 ```json
 {
   "chatId": "...",
-  "message": "<b>Hello, world!</b> <i>This is a test message.</i>",
-  "format": "html"
+  "message": "Simple plain text message",
+  "format": "text"
 }
 ```
 
-### Security and Validation
-- HTML and Markdown content will be sanitized and validated in future updates to prevent XSS and malicious formatting.
-- If formatting fails or is not supported, the message will fall back to plain text.
+### Security Features
 
-### Teams-Specific Features
-- Formatting is supported according to Microsoft Teams and Graph API capabilities.
-- For more details, see the [issue #6](https://github.com/floriscornel/teams-mcp/issues/6).
+- **HTML Sanitization**: All markdown content is converted to HTML and sanitized to remove potentially dangerous elements (scripts, event handlers, etc.)
+- **Allowed Tags**: Only safe HTML tags are permitted (p, strong, em, a, ul, ol, li, h1-h6, code, pre, etc.)
+- **Safe Attributes**: Only safe attributes are allowed (href, target, src, alt, title, width, height)
+- **XSS Prevention**: Content is automatically sanitized to prevent cross-site scripting attacks
+
+### Supported Markdown Features
+
+- **Text formatting**: Bold (`**text**`), italic (`_text_`), strikethrough (`~~text~~`)
+- **Links**: `[text](url)` 
+- **Lists**: Bulleted (`- item`) and numbered (`1. item`)
+- **Code**: Inline `` `code` `` and blocks ``` ```code``` ```
+- **Headings**: `# H1` through `###### H6`
+- **Line breaks**: Automatic conversion of newlines to `<br>` tags
+- **Blockquotes**: `> quoted text`
+- **Tables**: GitHub-flavored markdown tables
 
 ## 📦 Installation
 

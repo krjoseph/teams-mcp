@@ -11,6 +11,7 @@ import type {
   MessageSummary,
   User,
 } from "../types/graph.js";
+import { markdownToHtml, sanitizeHtml } from "../utils/markdown.js";
 
 export function registerChatTools(server: McpServer, graphService: GraphService) {
   // List user's chats
@@ -188,28 +189,30 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       chatId: z.string().describe("Chat ID"),
       message: z.string().describe("Message content"),
       importance: z.enum(["normal", "high", "urgent"]).optional().describe("Message importance"),
-      format: z
-        .enum(["text", "markdown", "html"])
-        .optional()
-        .describe("Message format (text, markdown, html)"),
+      format: z.enum(["text", "markdown"]).optional().describe("Message format (text or markdown)"),
     },
     async ({ chatId, message, importance = "normal", format = "text" }) => {
       try {
         const client = await graphService.getClient();
 
-        // Basic format validation and sanitization placeholder
-        let contentType: "text" | "html" | "markdown" = "text";
-        if (format === "html" || format === "markdown") {
-          contentType = format;
-          // TODO: Add sanitization/validation for HTML/Markdown
+        // Process message content based on format
+        let content: string;
+        let contentType: "text" | "html";
+
+        if (format === "markdown") {
+          content = await markdownToHtml(message);
+          contentType = "html";
+        } else {
+          content = message;
+          contentType = "text";
         }
 
         const newMessage = {
           body: {
-            content: message,
-            contentType: contentType,
+            content,
+            contentType,
           },
-          importance: importance,
+          importance,
         };
 
         const result = (await client
@@ -219,20 +222,20 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         return {
           content: [
             {
-              type: "text",
-              text: `✅ Message sent successfully. Message ID: ${result?.id}`,
+              type: "text" as const,
+              text: `✅ Message sent successfully. Message ID: ${result.id}`,
             },
           ],
         };
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      } catch (error: any) {
         return {
           content: [
             {
-              type: "text",
-              text: `❌ Error: ${errorMessage}`,
+              type: "text" as const,
+              text: `❌ Failed to send message: ${error.message}`,
             },
           ],
+          isError: true,
         };
       }
     }

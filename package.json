@@ -7,7 +7,11 @@
   "bin": {
     "teams-mcp": "dist/index.js"
   },
-  "files": ["dist/**/*", "README.md", "package.json"],
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "package.json"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -30,7 +34,12 @@
     "bump": "npx npm-check-updates -u",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "microsoft-graph", "teams", "model-context-protocol"],
+  "keywords": [
+    "mcp",
+    "microsoft-graph",
+    "teams",
+    "model-context-protocol"
+  ],
   "author": "Floris Cornel",
   "license": "MIT",
   "repository": {
@@ -46,6 +55,12 @@
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@microsoft/microsoft-graph-types": "^2.40.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "@types/dompurify": "^3.0.5",
+    "@types/jsdom": "^21.1.7",
+    "@types/marked": "^5.0.2",
+    "dompurify": "^3.2.6",
+    "jsdom": "^26.1.0",
+    "marked": "^15.0.12",
     "zod": "^3.25.51"
   },
   "devDependencies": {

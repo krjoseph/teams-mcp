@@ -12,6 +12,7 @@ import type {
   Team,
   TeamSummary,
 } from "../types/graph.js";
+import { markdownToHtml, sanitizeHtml } from "../utils/markdown.js";
 
 export function registerTeamsTools(server: McpServer, graphService: GraphService) {
   // List user's teams
@@ -203,28 +204,30 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
       channelId: z.string().describe("Channel ID"),
       message: z.string().describe("Message content"),
       importance: z.enum(["normal", "high", "urgent"]).optional().describe("Message importance"),
-      format: z
-        .enum(["text", "markdown", "html"])
-        .optional()
-        .describe("Message format (text, markdown, html)"),
+      format: z.enum(["text", "markdown"]).optional().describe("Message format (text or markdown)"),
     },
     async ({ teamId, channelId, message, importance = "normal", format = "text" }) => {
       try {
         const client = await graphService.getClient();
 
-        // Basic format validation and sanitization placeholder
-        let contentType: "text" | "html" | "markdown" = "text";
-        if (format === "html" || format === "markdown") {
-          contentType = format;
-          // TODO: Add sanitization/validation for HTML/Markdown
+        // Process message content based on format
+        let content: string;
+        let contentType: "text" | "html";
+
+        if (format === "markdown") {
+          content = await markdownToHtml(message);
+          contentType = "html";
+        } else {
+          content = message;
+          contentType = "text";
         }
 
         const newMessage = {
           body: {
-            content: message,
-            contentType: contentType,
+            content,
+            contentType,
           },
-          importance: importance,
+          importance,
         };
 
         const result = (await client
@@ -234,20 +237,20 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         return {
           content: [
             {
-              type: "text",
-              text: `✅ Message sent successfully. Message ID: ${result?.id}`,
+              type: "text" as const,
+              text: `✅ Message sent successfully. Message ID: ${result.id}`,
             },
           ],
         };
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      } catch (error: any) {
         return {
           content: [
             {
-              type: "text",
-              text: `❌ Error: ${errorMessage}`,
+              type: "text" as const,
+              text: `❌ Failed to send message: ${error.message}`,
             },
           ],
+          isError: true,
         };
       }
     }
@@ -348,51 +351,53 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
       messageId: z.string().describe("Message ID to reply to"),
       message: z.string().describe("Reply content"),
       importance: z.enum(["normal", "high", "urgent"]).optional().describe("Message importance"),
-      format: z
-        .enum(["text", "markdown", "html"])
-        .optional()
-        .describe("Reply format (text, markdown, html)"),
+      format: z.enum(["text", "markdown"]).optional().describe("Message format (text or markdown)"),
     },
     async ({ teamId, channelId, messageId, message, importance = "normal", format = "text" }) => {
       try {
         const client = await graphService.getClient();
 
-        // Basic format validation and sanitization placeholder
-        let contentType: "text" | "html" | "markdown" = "text";
-        if (format === "html" || format === "markdown") {
-          contentType = format;
-          // TODO: Add sanitization/validation for HTML/Markdown
+        // Process message content based on format
+        let content: string;
+        let contentType: "text" | "html";
+
+        if (format === "markdown") {
+          content = await markdownToHtml(message);
+          contentType = "html";
+        } else {
+          content = message;
+          contentType = "text";
         }
 
-        const newReply = {
+        const newMessage = {
           body: {
-            content: message,
-            contentType: contentType,
+            content,
+            contentType,
           },
-          importance: importance,
+          importance,
         };
 
         const result = (await client
           .api(`/teams/${teamId}/channels/${channelId}/messages/${messageId}/replies`)
-          .post(newReply)) as ChatMessage;
+          .post(newMessage)) as ChatMessage;
 
         return {
           content: [
             {
-              type: "text",
-              text: `✅ Reply sent successfully. Reply ID: ${result?.id}`,
+              type: "text" as const,
+              text: `✅ Reply sent successfully. Reply ID: ${result.id}`,
             },
           ],
         };
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      } catch (error: any) {
         return {
           content: [
             {
-              type: "text",
-              text: `❌ Error: ${errorMessage}`,
+              type: "text" as const,
+              text: `❌ Failed to send reply: ${error.message}`,
             },
           ],
+          isError: true,
         };
       }
     }

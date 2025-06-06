@@ -371,7 +371,7 @@ describe("Chat Tools", () => {
         message: "Test message",
       });
 
-      expect(result.content[0].text).toBe("❌ Error: Permission denied");
+      expect(result.content[0].text).toBe("❌ Failed to send message: Permission denied");
     });
 
     it("should send message with markdown format", async () => {
@@ -387,33 +387,32 @@ describe("Chat Tools", () => {
 
       expect(mockApiChain.post).toHaveBeenCalledWith({
         body: {
-          content: "**Bold** _Italic_",
-          contentType: "markdown",
+          content: expect.stringContaining("<strong>Bold</strong>"),
+          contentType: "html",
         },
         importance: "normal",
       });
       expect(result.content[0].text).toBe("✅ Message sent successfully. Message ID: mdmsg123");
     });
 
-    it("should send message with html format", async () => {
-      const mockResponse = { id: "htmlmsg123" };
+    it("should send message with text format (default)", async () => {
+      const mockResponse = { id: "txtmsg123" };
       const mockApiChain = { post: vi.fn().mockResolvedValue(mockResponse) };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
 
       const result = await sendChatMessageHandler({
         chatId: "chat123",
-        message: "<b>Bold</b> <i>Italic</i>",
-        format: "html",
+        message: "Plain text message",
       });
 
       expect(mockApiChain.post).toHaveBeenCalledWith({
         body: {
-          content: "<b>Bold</b> <i>Italic</i>",
-          contentType: "html",
+          content: "Plain text message",
+          contentType: "text",
         },
         importance: "normal",
       });
-      expect(result.content[0].text).toBe("✅ Message sent successfully. Message ID: htmlmsg123");
+      expect(result.content[0].text).toBe("✅ Message sent successfully. Message ID: txtmsg123");
     });
 
     it("should fallback to text for invalid format", async () => {
