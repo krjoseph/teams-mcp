@@ -122,7 +122,7 @@ async function startMcpServer() {
   // Create MCP server
   const server = new McpServer({
     name: "teams-mcp",
-    version: "0.3.0",
+    version: "0.3.1",
   });
 
   // Initialize Graph service (singleton)
