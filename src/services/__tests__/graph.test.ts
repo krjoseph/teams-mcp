@@ -273,9 +273,9 @@ describe("GraphService", () => {
       const results = await Promise.all(promises);
 
       // All should return the same authenticated status
-      results.forEach((result) => {
+      for (const result of results) {
         expect(result.isAuthenticated).toBe(true);
-      });
+      }
 
       // readFile should be called for each concurrent call since we reset the singleton
       expect(vi.mocked(fs.readFile)).toHaveBeenCalled();
