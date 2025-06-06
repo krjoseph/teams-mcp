@@ -371,7 +371,71 @@ describe("Chat Tools", () => {
         message: "Test message",
       });
 
-      expect(result.content[0].text).toBe("❌ Error: Permission denied");
+      expect(result.content[0].text).toBe("❌ Failed to send message: Permission denied");
+    });
+
+    it("should send message with markdown format", async () => {
+      const mockResponse = { id: "mdmsg123" };
+      const mockApiChain = { post: vi.fn().mockResolvedValue(mockResponse) };
+      mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+      const result = await sendChatMessageHandler({
+        chatId: "chat123",
+        message: "**Bold** _Italic_",
+        format: "markdown",
+      });
+
+      expect(mockApiChain.post).toHaveBeenCalledWith({
+        body: {
+          content: expect.stringContaining("<strong>Bold</strong>"),
+          contentType: "html",
+        },
+        importance: "normal",
+      });
+      expect(result.content[0].text).toBe("✅ Message sent successfully. Message ID: mdmsg123");
+    });
+
+    it("should send message with text format (default)", async () => {
+      const mockResponse = { id: "txtmsg123" };
+      const mockApiChain = { post: vi.fn().mockResolvedValue(mockResponse) };
+      mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+      const result = await sendChatMessageHandler({
+        chatId: "chat123",
+        message: "Plain text message",
+      });
+
+      expect(mockApiChain.post).toHaveBeenCalledWith({
+        body: {
+          content: "Plain text message",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
+      expect(result.content[0].text).toBe("✅ Message sent successfully. Message ID: txtmsg123");
+    });
+
+    it("should fallback to text for invalid format", async () => {
+      const mockResponse = { id: "fallbackmsg123" };
+      const mockApiChain = { post: vi.fn().mockResolvedValue(mockResponse) };
+      mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+      const result = await sendChatMessageHandler({
+        chatId: "chat123",
+        message: "Fallback message",
+        format: "invalid-format",
+      });
+
+      expect(mockApiChain.post).toHaveBeenCalledWith({
+        body: {
+          content: "Fallback message",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
+      expect(result.content[0].text).toBe(
+        "✅ Message sent successfully. Message ID: fallbackmsg123"
+      );
     });
   });
 

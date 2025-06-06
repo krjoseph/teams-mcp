@@ -294,30 +294,47 @@ describe("Teams Tools", () => {
       expect(tool.schema.importance).toBeDefined();
     });
 
-    it("should send message with default importance", async () => {
-      const sentMessage = { ...mockChatMessage, id: "new-message-id" };
+    it("should send message with markdown format", async () => {
+      const sentMessage = { ...mockChatMessage, id: "markdown-message-id" };
       mockClient.api().post.mockResolvedValue(sentMessage);
       registerTeamsTools(mockServer, mockGraphService);
 
       const tool = mockServer.getTool("send_channel_message");
-      const result = await tool.handler({
+      await tool.handler({
         teamId: "test-team-id",
         channelId: "test-channel-id",
-        message: "Hello, team!",
+        message: "**Bold** _Italic_",
+        format: "markdown",
       });
 
-      expect(mockClient.api).toHaveBeenCalledWith(
-        "/teams/test-team-id/channels/test-channel-id/messages"
-      );
       expect(mockClient.api().post).toHaveBeenCalledWith({
         body: {
-          content: "Hello, team!",
+          content: expect.stringContaining("<strong>Bold</strong>"),
+          contentType: "html",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should send message with text format (default)", async () => {
+      const sentMessage = { ...mockChatMessage, id: "text-message-id" };
+      mockClient.api().post.mockResolvedValue(sentMessage);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("send_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        message: "Plain text message",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Plain text message",
           contentType: "text",
         },
         importance: "normal",
       });
-
-      expect(result.content[0].text).toContain("✅ Message sent successfully");
     });
 
     it("should send message with custom importance", async () => {
@@ -353,7 +370,30 @@ describe("Teams Tools", () => {
         message: "Test message",
       });
 
-      expect(result.content[0].text).toContain("❌ Error: Send failed");
+      expect(result.content[0].text).toContain("❌ Failed to send message: Send failed");
+    });
+
+    it("should send reply with markdown format", async () => {
+      const sentReply = { ...mockChatMessage, id: "markdown-reply-id" };
+      mockClient.api().post.mockResolvedValue(sentReply);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "message-id",
+        message: "**Bold** reply",
+        format: "markdown",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: expect.stringContaining("<strong>Bold</strong>"),
+          contentType: "html",
+        },
+        importance: "normal",
+      });
     });
   });
 
@@ -496,7 +536,73 @@ describe("Teams Tools", () => {
         message: "Test reply",
       });
 
-      expect(result.content[0].text).toContain("❌ Error: Reply failed");
+      expect(result.content[0].text).toContain("❌ Failed to send reply: Reply failed");
+    });
+
+    it("should reply with markdown format", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-md" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "**Reply** _Markdown_",
+        format: "markdown",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: expect.stringContaining("<strong>Reply</strong>"),
+          contentType: "html",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should reply with text format (default)", async () => {
+      const sentReply = { ...mockChatMessage, id: "text-reply-id" };
+      mockClient.api().post.mockResolvedValue(sentReply);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "message-id",
+        message: "Plain text reply",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Plain text reply",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should fallback to text for invalid format in reply", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-fallback" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "Fallback reply",
+        format: "invalid-format",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Fallback reply",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
     });
   });
 
@@ -569,20 +675,33 @@ describe("Teams Tools", () => {
       registerTeamsTools(mockServer, mockGraphService);
 
       const testCases = [
-        { tool: "list_teams", params: {} },
-        { tool: "list_channels", params: { teamId: "test" } },
-        { tool: "get_channel_messages", params: { teamId: "test", channelId: "test" } },
+        { tool: "list_teams", params: {}, expectedError: "❌ Error: Not authenticated" },
+        {
+          tool: "list_channels",
+          params: { teamId: "test" },
+          expectedError: "❌ Error: Not authenticated",
+        },
+        {
+          tool: "get_channel_messages",
+          params: { teamId: "test", channelId: "test" },
+          expectedError: "❌ Error: Not authenticated",
+        },
         {
           tool: "send_channel_message",
           params: { teamId: "test", channelId: "test", message: "test" },
+          expectedError: "❌ Failed to send message: Not authenticated",
         },
-        { tool: "list_team_members", params: { teamId: "test" } },
+        {
+          tool: "list_team_members",
+          params: { teamId: "test" },
+          expectedError: "❌ Error: Not authenticated",
+        },
       ];
 
-      for (const { tool: toolName, params } of testCases) {
+      for (const { tool: toolName, params, expectedError } of testCases) {
         const tool = mockServer.getTool(toolName);
         const result = await tool.handler(params);
-        expect(result.content[0].text).toContain("❌ Error: Not authenticated");
+        expect(result.content[0].text).toContain(expectedError);
       }
     });
 

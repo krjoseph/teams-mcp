@@ -7,7 +7,11 @@
   "bin": {
     "teams-mcp": "dist/index.js"
   },
-  "files": ["dist/**/*", "README.md", "package.json"],
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "package.json"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -30,7 +34,12 @@
     "bump": "npx npm-check-updates -u",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "microsoft-graph", "teams", "model-context-protocol"],
+  "keywords": [
+    "mcp",
+    "microsoft-graph",
+    "teams",
+    "model-context-protocol"
+  ],
   "author": "Floris Cornel",
   "license": "MIT",
   "repository": {
@@ -46,11 +55,17 @@
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@microsoft/microsoft-graph-types": "^2.40.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "zod": "^3.25.51"
+    "@types/dompurify": "^3.2.0",
+    "@types/jsdom": "^21.1.7",
+    "@types/marked": "^6.0.0",
+    "dompurify": "^3.2.6",
+    "jsdom": "^26.1.0",
+    "marked": "^15.0.12",
+    "zod": "^3.25.55"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/node": "^22.15.29",
+    "@types/node": "^22.15.30",
     "@types/sinon": "^17.0.4",
     "@vitest/coverage-v8": "^3.2.2",
     "msw": "^2.9.0",
@@ -58,28 +73,6 @@
     "sinon": "^20.0.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.2"
-  },
-  "optionalDependencies": {
-    "@biomejs/cli-darwin-arm64": "^1.9.4",
-    "@biomejs/cli-darwin-x64": "^1.9.4",
-    "@biomejs/cli-linux-arm64": "^1.9.4",
-    "@biomejs/cli-linux-x64": "^1.9.4",
-    "@biomejs/cli-win32-arm64": "^1.9.4",
-    "@biomejs/cli-win32-x64": "^1.9.4",
-    "@rollup/rollup-android-arm-eabi": "^4.0.0",
-    "@rollup/rollup-android-arm64": "^4.0.0",
-    "@rollup/rollup-darwin-arm64": "^4.0.0",
-    "@rollup/rollup-darwin-x64": "^4.0.0",
-    "@rollup/rollup-linux-arm-gnueabihf": "^4.0.0",
-    "@rollup/rollup-linux-arm64-gnu": "^4.0.0",
-    "@rollup/rollup-linux-arm64-musl": "^4.0.0",
-    "@rollup/rollup-linux-riscv64-gnu": "^4.0.0",
-    "@rollup/rollup-linux-s390x-gnu": "^4.0.0",
-    "@rollup/rollup-linux-x64-gnu": "^4.0.0",
-    "@rollup/rollup-linux-x64-musl": "^4.0.0",
-    "@rollup/rollup-win32-arm64-msvc": "^4.0.0",
-    "@rollup/rollup-win32-ia32-msvc": "^4.0.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
