@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerChatTools } from "../chats.js";
-import type { GraphService } from "../../services/graph.js";
 import type { Client } from "@microsoft/microsoft-graph-client";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GraphService } from "../../services/graph.js";
+import { registerChatTools } from "../chats.js";
 
 // Mock the Graph service
 const mockGraphService = {
@@ -50,14 +50,12 @@ describe("Chat Tools", () => {
   });
 
   describe("list_chats", () => {
-    let listChatsHandler: Function;
+    let listChatsHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "list_chats"
-      );
-      listChatsHandler = call?.[2] as unknown as Function;
+      const call = vi.mocked(mockServer.tool).mock.calls.find(([name]) => name === "list_chats");
+      listChatsHandler = call?.[2] as unknown as (args: any) => Promise<any>;
     });
 
     it("should return chat list successfully", async () => {
@@ -85,7 +83,7 @@ describe("Chat Tools", () => {
 
       expect(mockClient.api).toHaveBeenCalledWith("/me/chats");
       expect(result.content[0].type).toBe("text");
-      
+
       const parsedText = JSON.parse(result.content[0].text);
       expect(parsedText).toHaveLength(2);
       expect(parsedText[0]).toEqual({
@@ -148,14 +146,14 @@ describe("Chat Tools", () => {
   });
 
   describe("get_chat_messages", () => {
-    let getChatMessagesHandler: Function;
+    let getChatMessagesHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "get_chat_messages"
-      );
-      getChatMessagesHandler = call?.[2] as unknown as Function;
+      const call = vi
+        .mocked(mockServer.tool)
+        .mock.calls.find(([name]) => name === "get_chat_messages");
+      getChatMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get chat messages with default parameters", async () => {
@@ -186,7 +184,7 @@ describe("Chat Tools", () => {
       expect(mockClient.api).toHaveBeenCalledWith(
         "/me/chats/chat123/messages?$top=undefined&$orderby=undefined asc"
       );
-      
+
       const parsedResponse = JSON.parse(result.content[0].text);
       expect(parsedResponse.messages).toHaveLength(2);
       expect(parsedResponse.filteringMethod).toBe("server-side");
@@ -286,7 +284,9 @@ describe("Chat Tools", () => {
 
       const result = await getChatMessagesHandler({ chatId: "chat123" });
 
-      expect(result.content[0].text).toBe("No messages found in this chat with the specified filters.");
+      expect(result.content[0].text).toBe(
+        "No messages found in this chat with the specified filters."
+      );
     });
 
     it("should handle errors", async () => {
@@ -302,14 +302,14 @@ describe("Chat Tools", () => {
   });
 
   describe("send_chat_message", () => {
-    let sendChatMessageHandler: Function;
+    let sendChatMessageHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "send_chat_message"
-      );
-      sendChatMessageHandler = call?.[2] as unknown as Function;
+      const call = vi
+        .mocked(mockServer.tool)
+        .mock.calls.find(([name]) => name === "send_chat_message");
+      sendChatMessageHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should send message with default importance", async () => {
@@ -376,14 +376,12 @@ describe("Chat Tools", () => {
   });
 
   describe("create_chat", () => {
-    let createChatHandler: Function;
+    let createChatHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "create_chat"
-      );
-      createChatHandler = call?.[2] as unknown as Function;
+      const call = vi.mocked(mockServer.tool).mock.calls.find(([name]) => name === "create_chat");
+      createChatHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should create one-on-one chat", async () => {
@@ -392,7 +390,8 @@ describe("Chat Tools", () => {
       const mockNewChat = { id: "newchat789" };
 
       const mockApiChain = {
-        get: vi.fn()
+        get: vi
+          .fn()
           .mockResolvedValueOnce(mockMe) // /me call
           .mockResolvedValueOnce(mockUser), // /users/email call
         post: vi.fn().mockResolvedValue(mockNewChat),
@@ -406,7 +405,7 @@ describe("Chat Tools", () => {
       expect(mockClient.api).toHaveBeenCalledWith("/me");
       expect(mockClient.api).toHaveBeenCalledWith("/users/other@example.com");
       expect(mockClient.api).toHaveBeenCalledWith("/chats");
-      
+
       expect(mockApiChain.post).toHaveBeenCalledWith({
         chatType: "oneOnOne",
         members: [
@@ -433,7 +432,8 @@ describe("Chat Tools", () => {
       const mockNewChat = { id: "groupchat123" };
 
       const mockApiChain = {
-        get: vi.fn()
+        get: vi
+          .fn()
           .mockResolvedValueOnce(mockMe) // /me call
           .mockResolvedValueOnce(mockUser1) // first user
           .mockResolvedValueOnce(mockUser2), // second user
@@ -475,9 +475,7 @@ describe("Chat Tools", () => {
       const mockNewChat = { id: "newchat789" };
 
       const mockApiChain = {
-        get: vi.fn()
-          .mockResolvedValueOnce(mockMe)
-          .mockResolvedValueOnce(mockUser),
+        get: vi.fn().mockResolvedValueOnce(mockMe).mockResolvedValueOnce(mockUser),
         post: vi.fn().mockResolvedValue(mockNewChat),
       };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
@@ -491,7 +489,7 @@ describe("Chat Tools", () => {
         chatType: "oneOnOne",
         members: expect.any(Array),
       });
-      
+
       // Should not include topic in the payload
       const postCall = mockApiChain.post.mock.calls[0][0];
       expect(postCall).not.toHaveProperty("topic");
@@ -501,7 +499,8 @@ describe("Chat Tools", () => {
       const mockMe = { id: "currentuser123" };
 
       const mockApiChain = {
-        get: vi.fn()
+        get: vi
+          .fn()
           .mockResolvedValueOnce(mockMe)
           .mockRejectedValueOnce(new Error("User not found")),
       };
@@ -519,9 +518,7 @@ describe("Chat Tools", () => {
       const mockUser = { id: "otheruser456" };
 
       const mockApiChain = {
-        get: vi.fn()
-          .mockResolvedValueOnce(mockMe)
-          .mockResolvedValueOnce(mockUser),
+        get: vi.fn().mockResolvedValueOnce(mockMe).mockResolvedValueOnce(mockUser),
         post: vi.fn().mockRejectedValue(new Error("Failed to create chat")),
       };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
@@ -533,4 +530,4 @@ describe("Chat Tools", () => {
       expect(result.content[0].text).toBe("❌ Error: Failed to create chat");
     });
   });
-}); 
+});

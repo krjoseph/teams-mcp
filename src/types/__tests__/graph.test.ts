@@ -1,22 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type {
-  GraphApiResponse,
-  GraphError,
-  UserSummary,
-  TeamSummary,
   ChannelSummary,
   ChatSummary,
-  MessageSummary,
-  MemberSummary,
   CreateChatPayload,
-  SendMessagePayload,
+  GraphApiResponse,
+  GraphError,
+  MemberSummary,
+  MessageFilterOptions,
+  MessageSummary,
+  RecentMessagesOptions,
+  SearchHit,
+  SearchHitsContainer,
   SearchRequest,
   SearchResponse,
   SearchResult,
-  SearchHitsContainer,
-  SearchHit,
-  MessageFilterOptions,
-  RecentMessagesOptions,
+  SendMessagePayload,
+  TeamSummary,
+  UserSummary,
 } from "../graph.js";
 
 describe("Graph Types", () => {
@@ -35,7 +35,7 @@ describe("Graph Types", () => {
 
     it("should allow optional properties", () => {
       const response: GraphApiResponse<{ id: string }> = {};
-      
+
       expect(response.value).toBeUndefined();
       expect(response["@odata.count"]).toBeUndefined();
       expect(response["@odata.nextLink"]).toBeUndefined();
@@ -348,4 +348,4 @@ describe("Graph Types", () => {
       expect(options.fromUser).toBe("user123");
     });
   });
-}); 
+});

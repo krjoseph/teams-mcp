@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerSearchTools } from "../search.js";
-import type { GraphService } from "../../services/graph.js";
 import type { Client } from "@microsoft/microsoft-graph-client";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GraphService } from "../../services/graph.js";
+import { registerSearchTools } from "../search.js";
 
 // Mock the Graph service
 const mockGraphService = {
@@ -49,14 +49,14 @@ describe("Search Tools", () => {
   });
 
   describe("search_messages", () => {
-    let searchMessagesHandler: Function;
+    let searchMessagesHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerSearchTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "search_messages"
-      );
-      searchMessagesHandler = call?.[2] as unknown as Function;
+      const call = vi
+        .mocked(mockServer.tool)
+        .mock.calls.find(([name]) => name === "search_messages");
+      searchMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should search messages with default parameters", async () => {
@@ -191,14 +191,14 @@ describe("Search Tools", () => {
   });
 
   describe("get_recent_messages", () => {
-    let getRecentMessagesHandler: Function;
+    let getRecentMessagesHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerSearchTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "get_recent_messages"
-      );
-      getRecentMessagesHandler = call?.[2] as unknown as Function;
+      const call = vi
+        .mocked(mockServer.tool)
+        .mock.calls.find(([name]) => name === "get_recent_messages");
+      getRecentMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get recent messages with advanced search", async () => {
@@ -241,7 +241,7 @@ describe("Search Tools", () => {
       });
 
       expect(mockClient.api).toHaveBeenCalledWith("/search/query");
-      
+
       const parsedResponse = JSON.parse(result.content[0].text);
       expect(parsedResponse.method).toBe("search_api");
       expect(parsedResponse.messages).toHaveLength(1);
@@ -260,7 +260,8 @@ describe("Search Tools", () => {
 
       const mockApiChain = {
         post: vi.fn().mockRejectedValue(new Error("Search failed")),
-        get: vi.fn()
+        get: vi
+          .fn()
           .mockResolvedValueOnce({ value: mockChats })
           .mockResolvedValueOnce({ value: mockMessages }),
       };
@@ -273,7 +274,7 @@ describe("Search Tools", () => {
       });
 
       expect(mockClient.api).toHaveBeenCalledWith("/me/chats");
-      
+
       const parsedResponse = JSON.parse(result.content[0].text);
       expect(parsedResponse.method).toBe("direct_chat_queries");
       expect(parsedResponse.messages).toHaveLength(1);
@@ -295,14 +296,14 @@ describe("Search Tools", () => {
   });
 
   describe("get_my_mentions", () => {
-    let getMyMentionsHandler: Function;
+    let getMyMentionsHandler: (args?: any) => Promise<any>;
 
     beforeEach(() => {
       registerSearchTools(mockServer, mockGraphService);
-      const call = vi.mocked(mockServer.tool).mock.calls.find(
-        ([name]) => name === "get_my_mentions"
-      );
-      getMyMentionsHandler = call?.[2] as unknown as Function;
+      const call = vi
+        .mocked(mockServer.tool)
+        .mock.calls.find(([name]) => name === "get_my_mentions");
+      getMyMentionsHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get mentions using search API", async () => {
