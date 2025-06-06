@@ -79,7 +79,7 @@ describe("Authentication Tools", () => {
         content: [
           {
             type: "text",
-            text: "✅ Authenticated as Test User (undefined)",
+            text: "✅ Authenticated as Test User (No email available)",
           },
         ],
       });
@@ -116,7 +116,7 @@ describe("Authentication Tools", () => {
         content: [
           {
             type: "text",
-            text: "✅ Authenticated as null (null)",
+            text: "✅ Authenticated as Unknown User (No email available)",
           },
         ],
       });

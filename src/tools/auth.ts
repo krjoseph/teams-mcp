@@ -10,7 +10,7 @@ export function registerAuthTools(server: McpServer, graphService: GraphService)
         {
           type: "text",
           text: status.isAuthenticated
-            ? `✅ Authenticated as ${status.displayName} (${status.userPrincipalName})`
+            ? `✅ Authenticated as ${status.displayName || "Unknown User"} (${status.userPrincipalName || "No email available"})`
             : "❌ Not authenticated. Please run: npx @floriscornel/teams-mcp@latest authenticate",
         },
       ],

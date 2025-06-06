@@ -30,7 +30,7 @@ export default defineConfig({
         },
       },
     },
-    testTimeout: 15000,
+    testTimeout: 10000,
     hookTimeout: 10000,
     // Isolate tests to prevent interference
     isolate: true,
@@ -38,7 +38,8 @@ export default defineConfig({
     pool: "threads",
     poolOptions: {
       threads: {
-        singleThread: true,
+        // Enable parallelization for better performance
+        // Tests are properly isolated so this should be safe
       },
     },
   },
