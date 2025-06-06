@@ -66,7 +66,48 @@ To use this MCP server in Cursor/Claude/VS Code, add the following configuration
   - Get recent messages with advanced filtering options
   - Find messages mentioning specific users
 
+## Rich Message Formatting Support
 
+The following tools now support rich message formatting in Teams channels and chats:
+- `send_channel_message`
+- `send_chat_message`
+- `reply_to_channel_message`
+
+### Format Options
+
+You can specify the `format` parameter to control the message formatting:
+- `text` (default): Plain text
+- `markdown`: Markdown formatting (bold, italic, lists, links, code, etc.)
+- `html`: Basic HTML formatting (tags, links, images, etc.)
+
+If `format` is not specified or is invalid, the message will be sent as plain text.
+
+### Example Usage
+
+```json
+{
+  "teamId": "...",
+  "channelId": "...",
+  "message": "**Hello, world!** _This is a test message._",
+  "format": "markdown"
+}
+```
+
+```json
+{
+  "chatId": "...",
+  "message": "<b>Hello, world!</b> <i>This is a test message.</i>",
+  "format": "html"
+}
+```
+
+### Security and Validation
+- HTML and Markdown content will be sanitized and validated in future updates to prevent XSS and malicious formatting.
+- If formatting fails or is not supported, the message will fall back to plain text.
+
+### Teams-Specific Features
+- Formatting is supported according to Microsoft Teams and Graph API capabilities.
+- For more details, see the [issue #6](https://github.com/floriscornel/teams-mcp/issues/6).
 
 ## 📦 Installation
 

@@ -355,6 +355,72 @@ describe("Teams Tools", () => {
 
       expect(result.content[0].text).toContain("❌ Error: Send failed");
     });
+
+    it("should send message with markdown format", async () => {
+      const sentMessage = { ...mockChatMessage, id: "markdown-message-id" };
+      mockClient.api().post.mockResolvedValue(sentMessage);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("send_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        message: "**Bold** _Italic_",
+        format: "markdown",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "**Bold** _Italic_",
+          contentType: "markdown",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should send message with html format", async () => {
+      const sentMessage = { ...mockChatMessage, id: "html-message-id" };
+      mockClient.api().post.mockResolvedValue(sentMessage);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("send_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        message: "<b>Bold</b> <i>Italic</i>",
+        format: "html",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "<b>Bold</b> <i>Italic</i>",
+          contentType: "html",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should fallback to text for invalid format", async () => {
+      const sentMessage = { ...mockChatMessage, id: "fallback-message-id" };
+      mockClient.api().post.mockResolvedValue(sentMessage);
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("send_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        message: "Fallback message",
+        format: "invalid-format",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Fallback message",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
+    });
   });
 
   describe("get_channel_message_replies tool", () => {
@@ -497,6 +563,72 @@ describe("Teams Tools", () => {
       });
 
       expect(result.content[0].text).toContain("❌ Error: Reply failed");
+    });
+
+    it("should reply with markdown format", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-md" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "**Reply** _Markdown_",
+        format: "markdown",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "**Reply** _Markdown_",
+          contentType: "markdown",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should reply with html format", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-html" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "<b>Reply</b> <i>HTML</i>",
+        format: "html",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "<b>Reply</b> <i>HTML</i>",
+          contentType: "html",
+        },
+        importance: "normal",
+      });
+    });
+
+    it("should fallback to text for invalid format in reply", async () => {
+      mockClient.api().post.mockResolvedValue({ id: "reply-fallback" });
+      registerTeamsTools(mockServer, mockGraphService);
+
+      const tool = mockServer.getTool("reply_to_channel_message");
+      await tool.handler({
+        teamId: "test-team-id",
+        channelId: "test-channel-id",
+        messageId: "test-message-id",
+        message: "Fallback reply",
+        format: "invalid-format",
+      });
+
+      expect(mockClient.api().post).toHaveBeenCalledWith({
+        body: {
+          content: "Fallback reply",
+          contentType: "text",
+        },
+        importance: "normal",
+      });
     });
   });
 

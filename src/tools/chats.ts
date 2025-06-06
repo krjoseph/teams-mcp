@@ -188,15 +188,26 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       chatId: z.string().describe("Chat ID"),
       message: z.string().describe("Message content"),
       importance: z.enum(["normal", "high", "urgent"]).optional().describe("Message importance"),
+      format: z
+        .enum(["text", "markdown", "html"])
+        .optional()
+        .describe("Message format (text, markdown, html)"),
     },
-    async ({ chatId, message, importance = "normal" }) => {
+    async ({ chatId, message, importance = "normal", format = "text" }) => {
       try {
         const client = await graphService.getClient();
+
+        // Basic format validation and sanitization placeholder
+        let contentType: "text" | "html" | "markdown" = "text";
+        if (format === "html" || format === "markdown") {
+          contentType = format;
+          // TODO: Add sanitization/validation for HTML/Markdown
+        }
 
         const newMessage = {
           body: {
             content: message,
-            contentType: "text",
+            contentType: contentType,
           },
           importance: importance,
         };
