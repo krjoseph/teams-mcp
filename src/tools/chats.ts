@@ -93,9 +93,23 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         // Build query parameters
         const queryParams: string[] = [`$top=${limit}`];
 
-        // Add ordering
-        const sortDirection = descending ? "desc" : "asc";
-        queryParams.push(`$orderby=${orderBy} ${sortDirection}`);
+        // Add ordering - only support descending for createdDateTime due to Graph API limitations
+        if (orderBy === "createdDateTime") {
+          if (!descending) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `❌ Error: QueryOptions to order by 'CreatedDateTime' in 'Ascending' direction is not supported.`,
+                },
+              ],
+            };
+          }
+          queryParams.push(`$orderby=${orderBy} desc`);
+        } else {
+          const sortDirection = descending ? "desc" : "asc";
+          queryParams.push(`$orderby=${orderBy} ${sortDirection}`);
+        }
 
         // Add filters (only user filter is supported reliably)
         const filters: string[] = [];
