@@ -7,6 +7,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
   // Search messages across Teams using Microsoft Search API
   server.tool(
     "search_messages",
+    "Search for messages across all Microsoft Teams channels and chats using Microsoft Search API. Supports advanced KQL syntax for filtering by sender, mentions, attachments, and more.",
     {
       query: z
         .string()
@@ -119,6 +120,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
   // Get recent messages with advanced filtering
   server.tool(
     "get_recent_messages",
+    "Get recent messages from across Teams with advanced filtering options. Can filter by time range, scope (channels vs chats), teams, channels, and users.",
     {
       hours: z
         .number()
@@ -298,7 +300,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
 
         // Fallback: Get recent messages from user's chats directly
         // This method is more reliable but doesn't support advanced filtering
-        const chatsResponse = await client.api("/me/chats").get();
+        const chatsResponse = await client.api("/me/chats?$expand=members").get();
         const chats = chatsResponse?.value || [];
 
         const allMessages: Array<{
@@ -420,6 +422,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
   // Search for messages mentioning the current user
   server.tool(
     "get_my_mentions",
+    "Find all recent messages where the current user was mentioned (@mentioned) across Teams channels and chats.",
     {
       hours: z
         .number()

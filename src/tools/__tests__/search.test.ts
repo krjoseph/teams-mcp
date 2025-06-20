@@ -32,16 +32,19 @@ describe("Search Tools", () => {
       expect(mockServer.tool).toHaveBeenCalledTimes(3);
       expect(mockServer.tool).toHaveBeenCalledWith(
         "search_messages",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
       expect(mockServer.tool).toHaveBeenCalledWith(
         "get_recent_messages",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
       expect(mockServer.tool).toHaveBeenCalledWith(
         "get_my_mentions",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
@@ -56,7 +59,7 @@ describe("Search Tools", () => {
       const call = vi
         .mocked(mockServer.tool)
         .mock.calls.find(([name]) => name === "search_messages");
-      searchMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      searchMessagesHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should search messages with default parameters", async () => {
@@ -198,7 +201,7 @@ describe("Search Tools", () => {
       const call = vi
         .mocked(mockServer.tool)
         .mock.calls.find(([name]) => name === "get_recent_messages");
-      getRecentMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      getRecentMessagesHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get recent messages with advanced search", async () => {
@@ -273,7 +276,7 @@ describe("Search Tools", () => {
         includeChannels: false,
       });
 
-      expect(mockClient.api).toHaveBeenCalledWith("/me/chats");
+      expect(mockClient.api).toHaveBeenCalledWith("/me/chats?$expand=members");
 
       const parsedResponse = JSON.parse(result.content[0].text);
       expect(parsedResponse.method).toBe("direct_chat_queries");
@@ -303,7 +306,7 @@ describe("Search Tools", () => {
       const call = vi
         .mocked(mockServer.tool)
         .mock.calls.find(([name]) => name === "get_my_mentions");
-      getMyMentionsHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      getMyMentionsHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get mentions using search API", async () => {

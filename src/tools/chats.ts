@@ -16,55 +16,67 @@ import { processMentionsInHtml } from "../utils/users.js";
 
 export function registerChatTools(server: McpServer, graphService: GraphService) {
   // List user's chats
-  server.tool("list_chats", {}, async () => {
-    try {
-      const client = await graphService.getClient();
-      const response = (await client.api("/me/chats").get()) as GraphApiResponse<Chat>;
+  server.tool(
+    "list_chats",
+    "List all recent chats (1:1 conversations and group chats) that the current user participates in. Returns chat topics, types, and participant information.",
+    {},
+    async () => {
+      try {
 
-      if (!response?.value?.length) {
+        // Build query parameters
+        const queryParams: string[] = [`$expand=members`];
+
+
+        const queryString = queryParams.join("&");
+
+        const client = await graphService.getClient();
+        const response = (await client.api(`/me/chats?${queryString}`).get()) as GraphApiResponse<Chat>;
+
+        if (!response?.value?.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No chats found.",
+              },
+            ],
+          };
+        }
+
+        const chatList: ChatSummary[] = response.value.map((chat: Chat) => ({
+          id: chat.id,
+          topic: chat.topic || "No topic",
+          chatType: chat.chatType,
+          members: chat.members?.map((member: ConversationMember) => member.displayName).join(", ") || "No members",
+        }));
+
         return {
           content: [
             {
               type: "text",
-              text: "No chats found.",
+              text: JSON.stringify(chatList, null, 2),
+            },
+          ],
+        };
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: `❌ Error: ${errorMessage}`,
             },
           ],
         };
       }
-
-      const chatList: ChatSummary[] = response.value.map((chat: Chat) => ({
-        id: chat.id,
-        topic: chat.topic || "No topic",
-        chatType: chat.chatType,
-        memberCount: chat.members?.length,
-      }));
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(chatList, null, 2),
-          },
-        ],
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      return {
-        content: [
-          {
-            type: "text",
-            text: `❌ Error: ${errorMessage}`,
-          },
-        ],
-      };
-    }
-  });
+    });
 
   // Get chat messages
   server.tool(
     "get_chat_messages",
+    "Retrieve recent messages from a specific chat conversation. Returns message content, sender information, and timestamps.",
     {
-      chatId: z.string().describe("Chat ID"),
+      chatId: z.string().describe("Chat ID (e.g. 19:meeting_Njhi..j@thread.v2"),
       limit: z
         .number()
         .min(1)
@@ -186,6 +198,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
   // Send chat message
   server.tool(
     "send_chat_message",
+    "Send a message to a specific chat conversation. Supports text and markdown formatting, mentions, and importance levels.",
     {
       chatId: z.string().describe("Chat ID"),
       message: z.string().describe("Message content"),
@@ -281,11 +294,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Message sent successfully. Message ID: ${result.id}${
-          finalMentions.length > 0
-            ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
-            : ""
-        }`;
+        const successText = `✅ Message sent successfully. Message ID: ${result.id}${finalMentions.length > 0
+          ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
+          : ""
+          }`;
 
         return {
           content: [
@@ -312,6 +324,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
   // Create new chat (1:1 or group)
   server.tool(
     "create_chat",
+    "Create a new chat conversation. Can be a 1:1 chat (with one other user) or a group chat (with multiple users). Group chats can optionally have a topic.",
     {
       userEmails: z.array(z.string()).describe("Array of user email addresses to add to chat"),
       topic: z.string().optional().describe("Chat topic (for group chats)"),

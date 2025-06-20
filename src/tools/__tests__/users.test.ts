@@ -28,7 +28,12 @@ describe("Users Tools", () => {
     it("should register get_current_user tool correctly", () => {
       registerUsersTools(mockServer, mockGraphService);
 
-      expect(mockServer.tool).toHaveBeenCalledWith("get_current_user", {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith(
+        "get_current_user",
+        "Get the current authenticated user's profile information including display name, email, job title, and department.",
+        {},
+        expect.any(Function)
+      );
     });
 
     it("should return current user information", async () => {

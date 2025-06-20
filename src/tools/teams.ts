@@ -23,53 +23,58 @@ import { type UserInfo, processMentionsInHtml, searchUsers } from "../utils/user
 
 export function registerTeamsTools(server: McpServer, graphService: GraphService) {
   // List user's teams
-  server.tool("list_teams", {}, async () => {
-    try {
-      const client = await graphService.getClient();
-      const response = (await client.api("/me/joinedTeams").get()) as GraphApiResponse<Team>;
+  server.tool(
+    "list_teams",
+    "List all Microsoft Teams that the current user is a member of. Returns team names, descriptions, and IDs.",
+    {},
+    async () => {
+      try {
+        const client = await graphService.getClient();
+        const response = (await client.api("/me/joinedTeams").get()) as GraphApiResponse<Team>;
 
-      if (!response?.value?.length) {
+        if (!response?.value?.length) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No teams found.",
+              },
+            ],
+          };
+        }
+
+        const teamList: TeamSummary[] = response.value.map((team: Team) => ({
+          id: team.id,
+          displayName: team.displayName,
+          description: team.description,
+          isArchived: team.isArchived,
+        }));
+
         return {
           content: [
             {
               type: "text",
-              text: "No teams found.",
+              text: JSON.stringify(teamList, null, 2),
+            },
+          ],
+        };
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: `❌ Error: ${errorMessage}`,
             },
           ],
         };
       }
-
-      const teamList: TeamSummary[] = response.value.map((team: Team) => ({
-        id: team.id,
-        displayName: team.displayName,
-        description: team.description,
-        isArchived: team.isArchived,
-      }));
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(teamList, null, 2),
-          },
-        ],
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      return {
-        content: [
-          {
-            type: "text",
-            text: `❌ Error: ${errorMessage}`,
-          },
-        ],
-      };
-    }
-  });
+    });
 
   // List channels in a team
   server.tool(
     "list_channels",
+    "List all channels in a specific Microsoft Team. Returns channel names, descriptions, types, and IDs for the specified team.",
     {
       teamId: z.string().describe("Team ID"),
     },
@@ -123,6 +128,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // Get channel messages
   server.tool(
     "get_channel_messages",
+    "Retrieve recent messages from a specific channel in a Microsoft Team. Returns message content, sender information, and timestamps.",
     {
       teamId: z.string().describe("Team ID"),
       channelId: z.string().describe("Channel ID"),
@@ -206,6 +212,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // Send message to channel
   server.tool(
     "send_channel_message",
+    "Send a message to a specific channel in a Microsoft Team. Supports text and markdown formatting, mentions, and importance levels.",
     {
       teamId: z.string().describe("Team ID"),
       channelId: z.string().describe("Channel ID"),
@@ -383,11 +390,10 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Message sent successfully. Message ID: ${result.id}${
-          finalMentions.length > 0
+        const successText = `✅ Message sent successfully. Message ID: ${result.id}${finalMentions.length > 0
             ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
             : ""
-        }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
+          }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
 
         return {
           content: [
@@ -414,6 +420,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // Get replies to a message in a channel
   server.tool(
     "get_channel_message_replies",
+    "Get all replies to a specific message in a channel. Returns reply content, sender information, and timestamps.",
     {
       teamId: z.string().describe("Team ID"),
       channelId: z.string().describe("Channel ID"),
@@ -500,6 +507,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // Reply to a message in a channel
   server.tool(
     "reply_to_channel_message",
+    "Reply to a specific message in a channel. Supports text and markdown formatting, mentions, and importance levels.",
     {
       teamId: z.string().describe("Team ID"),
       channelId: z.string().describe("Channel ID"),
@@ -679,11 +687,10 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Reply sent successfully. Reply ID: ${result.id}${
-          finalMentions.length > 0
+        const successText = `✅ Reply sent successfully. Reply ID: ${result.id}${finalMentions.length > 0
             ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
             : ""
-        }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
+          }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
 
         return {
           content: [
@@ -710,6 +717,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // List team members
   server.tool(
     "list_team_members",
+    "List all members of a specific Microsoft Team. Returns member names, email addresses, roles, and IDs.",
     {
       teamId: z.string().describe("Team ID"),
     },
@@ -762,6 +770,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
   // Search users for @mentions
   server.tool(
     "search_users_for_mentions",
+    "Search for users to mention in messages. Returns users with their display names, email addresses, and mention IDs.",
     {
       query: z.string().describe("Search query (name or email)"),
       limit: z

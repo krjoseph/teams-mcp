@@ -30,19 +30,22 @@ describe("Chat Tools", () => {
       registerChatTools(mockServer, mockGraphService);
 
       expect(mockServer.tool).toHaveBeenCalledTimes(4);
-      expect(mockServer.tool).toHaveBeenCalledWith("list_chats", {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith("list_chats", expect.any(String), {}, expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith(
         "get_chat_messages",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
       expect(mockServer.tool).toHaveBeenCalledWith(
         "send_chat_message",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
       expect(mockServer.tool).toHaveBeenCalledWith(
         "create_chat",
+        expect.any(String),
         expect.any(Object),
         expect.any(Function)
       );
@@ -55,7 +58,7 @@ describe("Chat Tools", () => {
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
       const call = vi.mocked(mockServer.tool).mock.calls.find(([name]) => name === "list_chats");
-      listChatsHandler = call?.[2] as unknown as (args: any) => Promise<any>;
+      listChatsHandler = call?.[3] as unknown as (args: any) => Promise<any>;
     });
 
     it("should return chat list successfully", async () => {
@@ -64,13 +67,13 @@ describe("Chat Tools", () => {
           id: "chat1",
           topic: "Test Chat 1",
           chatType: "group",
-          members: [{ id: "user1" }, { id: "user2" }],
+          members: [{ displayName: "user1" }, { displayName: "user2" }],
         },
         {
           id: "chat2",
           topic: null,
           chatType: "oneOnOne",
-          members: [{ id: "user1" }],
+          members: [{ displayName: "user1" }],
         },
       ];
 
@@ -81,7 +84,7 @@ describe("Chat Tools", () => {
 
       const result = await listChatsHandler();
 
-      expect(mockClient.api).toHaveBeenCalledWith("/me/chats");
+      expect(mockClient.api).toHaveBeenCalledWith("/me/chats?$expand=members");
       expect(result.content[0].type).toBe("text");
 
       const parsedText = JSON.parse(result.content[0].text);
@@ -90,13 +93,13 @@ describe("Chat Tools", () => {
         id: "chat1",
         topic: "Test Chat 1",
         chatType: "group",
-        memberCount: 2,
+        members: "user1, user2",
       });
       expect(parsedText[1]).toEqual({
         id: "chat2",
         topic: "No topic",
         chatType: "oneOnOne",
-        memberCount: 1,
+        members: "user1",
       });
     });
 
@@ -153,7 +156,7 @@ describe("Chat Tools", () => {
       const call = vi
         .mocked(mockServer.tool)
         .mock.calls.find(([name]) => name === "get_chat_messages");
-      getChatMessagesHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      getChatMessagesHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should get chat messages with default parameters", async () => {
@@ -309,7 +312,7 @@ describe("Chat Tools", () => {
       const call = vi
         .mocked(mockServer.tool)
         .mock.calls.find(([name]) => name === "send_chat_message");
-      sendChatMessageHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      sendChatMessageHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should send message with default importance", async () => {
@@ -445,7 +448,7 @@ describe("Chat Tools", () => {
     beforeEach(() => {
       registerChatTools(mockServer, mockGraphService);
       const call = vi.mocked(mockServer.tool).mock.calls.find(([name]) => name === "create_chat");
-      createChatHandler = call?.[2] as unknown as (args?: any) => Promise<any>;
+      createChatHandler = call?.[3] as unknown as (args?: any) => Promise<any>;
     });
 
     it("should create one-on-one chat", async () => {

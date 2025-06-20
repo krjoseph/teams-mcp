@@ -20,7 +20,12 @@ describe("Authentication Tools", () => {
       mockGraphService = createMockGraphService();
       registerAuthTools(mockServer, mockGraphService);
 
-      expect(mockServer.tool).toHaveBeenCalledWith("auth_status", {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith(
+        "auth_status",
+        "Check the authentication status of the Microsoft Graph connection. Returns whether the user is authenticated and shows their basic profile information.",
+        {},
+        expect.any(Function)
+      );
     });
 
     it("should return authenticated status when user is authenticated", async () => {
@@ -139,7 +144,7 @@ describe("Authentication Tools", () => {
       }).not.toThrow();
 
       // Tool should still be registered
-      expect(mockServer.tool).toHaveBeenCalledWith("auth_status", {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith("auth_status", expect.any(String), {}, expect.any(Function));
     });
   });
 

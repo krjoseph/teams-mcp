@@ -355,8 +355,8 @@ export function createMockMcpServer() {
   const tools = new Map();
 
   return {
-    tool: vi.fn().mockImplementation((name, schema, handler) => {
-      tools.set(name, { schema, handler });
+    tool: vi.fn().mockImplementation((name, description, schema, handler) => {
+      tools.set(name, { description, schema, handler });
     }),
     connect: vi.fn(),
     getTool: (name: string) => tools.get(name),
