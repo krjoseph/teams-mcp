@@ -100,7 +100,7 @@ async function checkAuth() {
       }
       return true;
     }
-  } catch (error) {
+  } catch (_error) {
     console.log("❌ No authentication found");
     return false;
   }
@@ -112,7 +112,7 @@ async function logout() {
     await fs.unlink(TOKEN_PATH);
     console.log("✅ Successfully logged out");
     console.log("🔄 Run 'npx @floriscornel/teams-mcp@latest authenticate' to re-authenticate");
-  } catch (error) {
+  } catch (_error) {
     console.log("ℹ️  No authentication to clear");
   }
 }

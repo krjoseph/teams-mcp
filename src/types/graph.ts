@@ -10,8 +10,8 @@ import type {
   NullableOption,
   Team,
   TeamSpecialization,
-  TeamVisibilityType,
   TeamsAppInstallation,
+  TeamVisibilityType,
   User,
 } from "@microsoft/microsoft-graph-types";
 

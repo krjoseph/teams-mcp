@@ -214,7 +214,7 @@ describe("Chat Tools", () => {
       };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
 
-      const result = await getChatMessagesHandler({
+      const _result = await getChatMessagesHandler({
         chatId: "chat123",
         limit: 10,
         fromUser: "user123",
@@ -525,7 +525,7 @@ describe("Chat Tools", () => {
       };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
 
-      const result = await createChatHandler({
+      const _result = await createChatHandler({
         userEmails: ["user1@example.com", "user2@example.com"],
         topic: "Project Discussion",
       });
@@ -564,7 +564,7 @@ describe("Chat Tools", () => {
       };
       mockClient.api = vi.fn().mockReturnValue(mockApiChain);
 
-      const result = await createChatHandler({
+      const _result = await createChatHandler({
         userEmails: ["other@example.com"],
         topic: "This should be ignored",
       });

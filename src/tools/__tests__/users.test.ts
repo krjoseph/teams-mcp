@@ -353,7 +353,7 @@ describe("Users Tools", () => {
       registerUsersTools(mockServer, mockGraphService);
 
       const tool = mockServer.getTool("get_user");
-      const result = await tool.handler({ userId: "" });
+      const _result = await tool.handler({ userId: "" });
 
       expect(mockClient.api).toHaveBeenCalledWith("/users/");
     });

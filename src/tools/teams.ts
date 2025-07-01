@@ -19,7 +19,7 @@ import {
   uploadImageAsHostedContent,
 } from "../utils/attachments.js";
 import { markdownToHtml } from "../utils/markdown.js";
-import { type UserInfo, processMentionsInHtml, searchUsers } from "../utils/users.js";
+import { processMentionsInHtml, searchUsers, type UserInfo } from "../utils/users.js";
 
 export function registerTeamsTools(server: McpServer, graphService: GraphService) {
   // List user's teams
@@ -282,7 +282,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
                 userId: mention.userId,
                 displayName: userResponse.displayName || mention.mention,
               });
-            } catch (error) {
+            } catch (_error) {
               console.warn(
                 `Could not resolve user ${mention.userId}, using mention text as display name`
               );
@@ -580,7 +580,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
                 userId: mention.userId,
                 displayName: userResponse.displayName || mention.mention,
               });
-            } catch (error) {
+            } catch (_error) {
               console.warn(
                 `Could not resolve user ${mention.userId}, using mention text as display name`
               );

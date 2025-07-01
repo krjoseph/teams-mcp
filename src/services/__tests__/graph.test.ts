@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockUser, server } from "../../test-utils/setup.js";
-import { type AuthStatus, GraphService } from "../graph.js";
+import { GraphService } from "../graph.js";
 
 // Mock the filesystem
 vi.mock("node:fs", () => ({

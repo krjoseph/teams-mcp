@@ -512,7 +512,7 @@ describe("Teams Tools", () => {
       registerTeamsTools(mockServer, mockGraphService);
 
       const tool = mockServer.getTool("reply_to_channel_message");
-      const result = await tool.handler({
+      const _result = await tool.handler({
         teamId: "test-team-id",
         channelId: "test-channel-id",
         messageId: "test-message-id",
@@ -749,7 +749,7 @@ describe("Teams Tools", () => {
       registerTeamsTools(mockServer, mockGraphService);
 
       const tool = mockServer.getTool("send_channel_message");
-      const result = await tool.handler({
+      const _result = await tool.handler({
         teamId: "test-team-id",
         channelId: "test-channel-id",
         message: "",

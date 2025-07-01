@@ -262,7 +262,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
                 userId: mention.userId,
                 displayName: userResponse.displayName || mention.mention,
               });
-            } catch (error) {
+            } catch (_error) {
               console.warn(
                 `Could not resolve user ${mention.userId}, using mention text as display name`
               );

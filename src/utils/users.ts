@@ -55,7 +55,7 @@ export async function getUserByEmail(
       displayName: response.displayName || "Unknown User",
       userPrincipalName: response.userPrincipalName,
     };
-  } catch (error) {
+  } catch (_error) {
     // User not found or access denied
     return null;
   }
@@ -81,7 +81,7 @@ export async function getUserById(
       displayName: response.displayName || "Unknown User",
       userPrincipalName: response.userPrincipalName,
     };
-  } catch (error) {
+  } catch (_error) {
     // User not found or access denied
     return null;
   }

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GraphService } from "../../services/graph.js";
 import { server } from "../../test-utils/setup.js";
