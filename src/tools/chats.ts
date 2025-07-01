@@ -22,15 +22,15 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
     {},
     async () => {
       try {
-
         // Build query parameters
-        const queryParams: string[] = [`$expand=members`];
-
+        const queryParams: string[] = ["$expand=members"];
 
         const queryString = queryParams.join("&");
 
         const client = await graphService.getClient();
-        const response = (await client.api(`/me/chats?${queryString}`).get()) as GraphApiResponse<Chat>;
+        const response = (await client
+          .api(`/me/chats?${queryString}`)
+          .get()) as GraphApiResponse<Chat>;
 
         if (!response?.value?.length) {
           return {
@@ -47,7 +47,9 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           id: chat.id,
           topic: chat.topic || "No topic",
           chatType: chat.chatType,
-          members: chat.members?.map((member: ConversationMember) => member.displayName).join(", ") || "No members",
+          members:
+            chat.members?.map((member: ConversationMember) => member.displayName).join(", ") ||
+            "No members",
         }));
 
         return {
@@ -69,7 +71,8 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           ],
         };
       }
-    });
+    }
+  );
 
   // Get chat messages
   server.tool(
@@ -294,10 +297,11 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Message sent successfully. Message ID: ${result.id}${finalMentions.length > 0
-          ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
-          : ""
-          }`;
+        const successText = `✅ Message sent successfully. Message ID: ${result.id}${
+          finalMentions.length > 0
+            ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
+            : ""
+        }`;
 
         return {
           content: [

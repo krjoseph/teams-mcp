@@ -144,7 +144,12 @@ describe("Authentication Tools", () => {
       }).not.toThrow();
 
       // Tool should still be registered
-      expect(mockServer.tool).toHaveBeenCalledWith("auth_status", expect.any(String), {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith(
+        "auth_status",
+        expect.any(String),
+        {},
+        expect.any(Function)
+      );
     });
   });
 

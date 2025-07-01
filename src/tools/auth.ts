@@ -19,5 +19,6 @@ export function registerAuthTools(server: McpServer, graphService: GraphService)
           },
         ],
       };
-    });
+    }
+  );
 }

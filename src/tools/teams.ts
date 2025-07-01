@@ -69,7 +69,8 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
           ],
         };
       }
-    });
+    }
+  );
 
   // List channels in a team
   server.tool(
@@ -390,10 +391,11 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Message sent successfully. Message ID: ${result.id}${finalMentions.length > 0
+        const successText = `✅ Message sent successfully. Message ID: ${result.id}${
+          finalMentions.length > 0
             ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
             : ""
-          }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
+        }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
 
         return {
           content: [
@@ -687,10 +689,11 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
           .post(messagePayload)) as ChatMessage;
 
         // Build success message
-        const successText = `✅ Reply sent successfully. Reply ID: ${result.id}${finalMentions.length > 0
+        const successText = `✅ Reply sent successfully. Reply ID: ${result.id}${
+          finalMentions.length > 0
             ? `\n📱 Mentions: ${finalMentions.map((m) => m.mentionText).join(", ")}`
             : ""
-          }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
+        }${attachments.length > 0 ? `\n🖼️ Image attached: ${attachments[0].name}` : ""}`;
 
         return {
           content: [

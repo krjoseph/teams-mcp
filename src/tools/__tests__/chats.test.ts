@@ -30,7 +30,12 @@ describe("Chat Tools", () => {
       registerChatTools(mockServer, mockGraphService);
 
       expect(mockServer.tool).toHaveBeenCalledTimes(4);
-      expect(mockServer.tool).toHaveBeenCalledWith("list_chats", expect.any(String), {}, expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith(
+        "list_chats",
+        expect.any(String),
+        {},
+        expect.any(Function)
+      );
       expect(mockServer.tool).toHaveBeenCalledWith(
         "get_chat_messages",
         expect.any(String),

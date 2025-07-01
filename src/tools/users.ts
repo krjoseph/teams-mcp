@@ -42,7 +42,8 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
           ],
         };
       }
-    });
+    }
+  );
 
   // Search users
   server.tool(
