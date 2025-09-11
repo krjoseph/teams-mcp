@@ -6,9 +6,12 @@ on:
   push:
     branches: [ main ]
 
+# Only run this workflow for floriscornel/teams-mcp repository
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: github.repository == 'floriscornel/teams-mcp'
     strategy:
       matrix:
         node-version: [18, 20, 22]
