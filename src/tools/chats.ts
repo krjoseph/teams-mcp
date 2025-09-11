@@ -13,6 +13,8 @@ import type {
 } from "../types/graph.js";
 import { markdownToHtml } from "../utils/markdown.js";
 import { processMentionsInHtml } from "../utils/users.js";
+import { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 
 export function registerChatTools(server: McpServer, graphService: GraphService) {
   // List user's chats
@@ -20,14 +22,14 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
     "list_chats",
     "List all recent chats (1:1 conversations and group chats) that the current user participates in. Returns chat topics, types, and participant information.",
     {},
-    async () => {
+    async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         // Build query parameters
         const queryParams: string[] = ["$expand=members"];
 
         const queryString = queryParams.join("&");
 
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const response = (await client
           .api(`/me/chats?${queryString}`)
           .get()) as GraphApiResponse<Chat>;
@@ -101,9 +103,9 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .default(true)
         .describe("Sort in descending order (newest first)"),
     },
-    async ({ chatId, limit, since, until, fromUser, orderBy, descending }) => {
+    async ({ chatId, limit, since, until, fromUser, orderBy, descending }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Build query parameters
         const queryParams: string[] = [`$top=${limit}`];
@@ -230,9 +232,9 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .optional()
         .describe("Array of @mentions to include in the message"),
     },
-    async ({ chatId, message, importance = "normal", format = "text", mentions }) => {
+    async ({ chatId, message, importance = "normal", format = "text", mentions }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Process message content based on format
         let content: string;
@@ -344,9 +346,9 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       userEmails: z.array(z.string()).describe("Array of user email addresses to add to chat"),
       topic: z.string().optional().describe("Chat topic (for group chats)"),
     },
-    async ({ userEmails, topic }) => {
+    async ({ userEmails, topic }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Get current user ID
         const me = (await client.api("/me").get()) as User;
@@ -370,7 +372,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
             user: {
               id: user?.id,
             },
-            roles: ["member"],
+            roles: ["owner"],
           } as ConversationMember);
         }
 

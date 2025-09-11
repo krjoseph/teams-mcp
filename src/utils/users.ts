@@ -1,5 +1,6 @@
 import type { GraphService } from "../services/graph.js";
 import type { User } from "../types/graph.js";
+import { RequestInfo } from "@modelcontextprotocol/sdk/types.js";
 
 export interface UserInfo {
   id: string;
@@ -13,10 +14,11 @@ export interface UserInfo {
 export async function searchUsers(
   graphService: GraphService,
   query: string,
-  limit = 10
+  limit = 10,
+  requestInfo?: RequestInfo
 ): Promise<UserInfo[]> {
   try {
-    const client = await graphService.getClient();
+    const client = await graphService.getClient(requestInfo);
 
     // Use filter query to search users by displayName or userPrincipalName
     const searchQuery = `$filter=startswith(displayName,'${query}') or startswith(userPrincipalName,'${query}')&$top=${limit}&$select=id,displayName,userPrincipalName`;

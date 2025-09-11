@@ -1,0 +1,52 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku Container Registry
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+        run: |
+          echo $HEROKU_API_KEY | docker login --username=$HEROKU_EMAIL --password-stdin registry.heroku.com
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and push Docker image
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: microsoft-teams-mcp
+          DOCKERFILE_PATH: .
+        run: |
+          # Ensure we're in the repository root directory
+          cd $GITHUB_WORKSPACE
+          echo "Building from directory: $(pwd)"
+          heroku container:push web --app ${HEROKU_APP_NAME}
+
+      # Step 4: Release the container on Heroku
+      - name: Release Docker container
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: microsoft-teams-mcp
+        run: |
+          heroku container:release web --app ${HEROKU_APP_NAME}

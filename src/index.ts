@@ -5,16 +5,57 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { DeviceCodeCredential } from "@azure/identity";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { GraphService } from "./services/graph.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerChatTools } from "./tools/chats.js";
 import { registerSearchTools } from "./tools/search.js";
 import { registerTeamsTools } from "./tools/teams.js";
 import { registerUsersTools } from "./tools/users.js";
+import { HttpTransportHandler } from "./transports/HttpTransportHandler.js";
+import { StdioTransportHandler } from "./transports/StdioTransportHandler.js";
 
 const CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
 const TOKEN_PATH = join(homedir(), ".msgraph-mcp-auth.json");
+
+// Types for command line arguments
+interface ServerOptions {
+  transport: 'stdio' | 'http';
+  port?: number;
+}
+
+// Parse command line arguments
+function parseArgs(args: string[]): { command: string | undefined; options: ServerOptions } {
+  const options: ServerOptions = { transport: 'stdio' };
+  let command: string | undefined;
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    if (arg === '--transport') {
+      const transportValue = args[i + 1];
+      if (transportValue === 'stdio' || transportValue === 'http') {
+        options.transport = transportValue;
+        i++; // Skip next argument as it's the value
+      } else {
+        console.error(`Invalid transport type: ${transportValue}. Must be 'stdio' or 'http'`);
+        process.exit(1);
+      }
+    } else if (arg === '--port') {
+      const portValue = parseInt(args[i + 1], 10);
+      if (isNaN(portValue) || portValue < 1 || portValue > 65535) {
+        console.error(`Invalid port number: ${args[i + 1]}. Must be between 1 and 65535`);
+        process.exit(1);
+      }
+      options.port = portValue;
+      i++; // Skip next argument as it's the value
+    } else if (!arg.startsWith('--') && !command) {
+      // First non-option argument is the command
+      command = arg;
+    }
+  }
+  
+  return { command, options };
+}
 
 // Authentication functions
 async function authenticate() {
@@ -118,7 +159,7 @@ async function logout() {
 }
 
 // MCP Server setup
-async function startMcpServer() {
+async function startMcpServer(options: ServerOptions) {
   // Create MCP server
   const server = new McpServer({
     name: "teams-mcp",
@@ -135,16 +176,46 @@ async function startMcpServer() {
   registerChatTools(server, graphService);
   registerSearchTools(server, graphService);
 
-  // Start server
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Microsoft Graph MCP Server started");
+  // Start server with appropriate transport
+  if (options.transport === 'http') {
+    const config = options.port ? { port: options.port } : {};
+    const httpHandler = new HttpTransportHandler(server, config);
+    await httpHandler.connect();
+  } else {
+    const stdioHandler = new StdioTransportHandler(server);
+    await stdioHandler.connect();
+  }
 }
 
 // Main function to handle both CLI and MCP server modes
 async function main() {
   const args = process.argv.slice(2);
-  const command = args[0];
+  
+  // Check for help first before parsing
+  if (args.includes('--help') || args.includes('-h') || args.includes('help')) {
+    console.log("Microsoft Graph MCP Server");
+    console.log("");
+    console.log("Usage:");
+    console.log(
+      "  npx @floriscornel/teams-mcp@latest authenticate                    # Authenticate with Microsoft"
+    );
+    console.log(
+      "  npx @floriscornel/teams-mcp@latest check                           # Check authentication status"
+    );
+    console.log(
+      "  npx @floriscornel/teams-mcp@latest logout                          # Clear authentication"
+    );
+    console.log(
+      "  npx @floriscornel/teams-mcp@latest [--transport stdio|http] [--port PORT] # Start MCP server (default)"
+    );
+    console.log("");
+    console.log("Options:");
+    console.log("  --transport stdio|http    Transport type (default: stdio)");
+    console.log("  --port PORT              Port number for HTTP transport (default: 3000)");
+    return;
+  }
+  
+  const { command, options } = parseArgs(args);
 
   // CLI commands
   switch (command) {
@@ -158,24 +229,9 @@ async function main() {
     case "logout":
       await logout();
       return;
-    case "help":
-    case "--help":
-    case "-h":
-      console.log("Microsoft Graph MCP Server");
-      console.log("");
-      console.log("Usage:");
-      console.log(
-        "  npx @floriscornel/teams-mcp@latest authenticate # Authenticate with Microsoft"
-      );
-      console.log(
-        "  npx @floriscornel/teams-mcp@latest check        # Check authentication status"
-      );
-      console.log("  npx @floriscornel/teams-mcp@latest logout       # Clear authentication");
-      console.log("  npx @floriscornel/teams-mcp@latest              # Start MCP server (default)");
-      return;
     case undefined:
       // No command = start MCP server
-      await startMcpServer();
+      await startMcpServer(options);
       return;
     default:
       console.error(`Unknown command: ${command}`);
