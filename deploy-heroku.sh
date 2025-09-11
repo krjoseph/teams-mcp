@@ -40,7 +40,7 @@ fi
 # Set the branch to deploy
 BRANCH_TO_DEPLOY="support-streamble-http"
 
-# Push to Heroku
-git push heroku $BRANCH_TO_DEPLOY:main
+# Push to Heroku (force push to replace existing code from another repo)
+git push heroku $BRANCH_TO_DEPLOY:main --force
 
 echo "Deployment to Heroku app 'microsoft-teams-mcp' initiated."
