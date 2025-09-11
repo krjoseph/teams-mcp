@@ -38,7 +38,7 @@ if [ -n "$(git status --porcelain package.json)" ]; then
 fi
 
 # Set the branch to deploy
-BRANCH_TO_DEPLOY="support-streamble-http"
+BRANCH_TO_DEPLOY="main"
 
 # Push to Heroku (force push to replace existing code from another repo)
 git push heroku $BRANCH_TO_DEPLOY:main --force
