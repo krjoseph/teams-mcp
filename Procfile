@@ -1,1 +1,1 @@
-web: npm run dev -- --transport http --port $PORT
+web: node dist/index.js --transport http --port $PORT
