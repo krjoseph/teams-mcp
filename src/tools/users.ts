@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { GraphService } from "../services/graph.js";
 import type { GraphApiResponse, User, UserSummary } from "../types/graph.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 
 export function registerUsersTools(server: McpServer, graphService: GraphService) {
   // Get current user
@@ -9,9 +11,9 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     "get_current_user",
     "Get the current authenticated user's profile information including display name, email, job title, and department.",
     {},
-    async () => {
+    async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const user = (await client.api("/me").get()) as User;
 
         const userSummary: UserSummary = {
@@ -52,9 +54,9 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     {
       query: z.string().describe("Search query (name or email)"),
     },
-    async ({ query }) => {
+    async ({ query }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const response = (await client
           .api("/users")
           .filter(
@@ -109,9 +111,9 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     {
       userId: z.string().describe("User ID or email address"),
     },
-    async ({ userId }) => {
+    async ({ userId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const user = (await client.api(`/users/${userId}`).get()) as User;
 
         const userSummary: UserSummary = {

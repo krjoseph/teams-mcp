@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@microsoft/microsoft-graph-client";
+import { RequestInfo } from "@modelcontextprotocol/sdk/types.js";
 
 export interface AuthStatus {
   isAuthenticated: boolean;
@@ -17,6 +18,8 @@ interface StoredAuthInfo {
   expiresAt?: string;
   token: string;
 }
+
+const clientPoolPerToken = new Map<string, Client>();
 
 export class GraphService {
   private static instance: GraphService;
@@ -70,15 +73,31 @@ export class GraphService {
     }
   }
 
-  async getAuthStatus(): Promise<AuthStatus> {
-    await this.initializeClient();
+  async getAuthStatus(requestInfo?: RequestInfo): Promise<AuthStatus> {
+    let client = undefined;
+    const token = (requestInfo as any)?.headers?.authorization?.split(" ")[1];
+    if (token){
+      if (clientPoolPerToken.has(token)) {
+        client = clientPoolPerToken.get(token)!;
+      } else {
+        client = Client.initWithMiddleware({
+          authProvider: {
+            getAccessToken: async () => token,
+          },
+        });
+      }
+      clientPoolPerToken.set(token, client);
+    } else {
+      await this.initializeClient();
+      client = this.client;
 
-    if (!this.client) {
-      return { isAuthenticated: false };
+      if (!client) {
+        return { isAuthenticated: false };
+      }
     }
 
     try {
-      const me = await this.client.api("/me").get();
+      const me = await client.api("/me").get();
       return {
         isAuthenticated: true,
         userPrincipalName: me?.userPrincipalName ?? undefined,
@@ -91,7 +110,21 @@ export class GraphService {
     }
   }
 
-  async getClient(): Promise<Client> {
+  async getClient(requestInfo?: RequestInfo): Promise<Client> {
+    const token = (requestInfo as any)?.headers?.authorization?.split(" ")[1];
+    if (token){
+      if (clientPoolPerToken.has(token)) {
+        return clientPoolPerToken.get(token)!;
+      }
+      const client = Client.initWithMiddleware({
+        authProvider: {
+          getAccessToken: async () => token,
+        },
+      });
+      clientPoolPerToken.set(token, client);
+      return client;
+    }
+
     await this.initializeClient();
 
     if (!this.client) {

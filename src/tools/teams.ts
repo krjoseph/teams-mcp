@@ -20,16 +20,17 @@ import {
 } from "../utils/attachments.js";
 import { markdownToHtml } from "../utils/markdown.js";
 import { processMentionsInHtml, searchUsers, type UserInfo } from "../utils/users.js";
-
+import { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 export function registerTeamsTools(server: McpServer, graphService: GraphService) {
   // List user's teams
   server.tool(
     "list_teams",
     "List all Microsoft Teams that the current user is a member of. Returns team names, descriptions, and IDs.",
     {},
-    async () => {
+    async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const response = (await client.api("/me/joinedTeams").get()) as GraphApiResponse<Team>;
 
         if (!response?.value?.length) {
@@ -79,9 +80,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
     {
       teamId: z.string().describe("Team ID"),
     },
-    async ({ teamId }) => {
+    async ({ teamId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const response = (await client
           .api(`/teams/${teamId}/channels`)
           .get()) as GraphApiResponse<Channel>;
@@ -141,9 +142,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(20)
         .describe("Number of messages to retrieve (default: 20)"),
     },
-    async ({ teamId, channelId, limit }) => {
+    async ({ teamId, channelId, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Build query parameters - Teams channel messages API has limited query support
         // Only $top is supported, no $orderby, $filter, etc.
@@ -250,9 +251,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
       imageData,
       imageContentType,
       imageFileName,
-    }) => {
+    }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Process message content based on format
         let content: string;
@@ -435,9 +436,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(20)
         .describe("Number of replies to retrieve (default: 20)"),
     },
-    async ({ teamId, channelId, messageId, limit }) => {
+    async ({ teamId, channelId, messageId, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Only $top is supported for message replies
         const queryParams: string[] = [`$top=${limit}`];
@@ -548,9 +549,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
       imageData,
       imageContentType,
       imageFileName,
-    }) => {
+    }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Process message content based on format
         let content: string;
@@ -724,9 +725,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
     {
       teamId: z.string().describe("Team ID"),
     },
-    async ({ teamId }) => {
+    async ({ teamId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
         const response = (await client
           .api(`/teams/${teamId}/members`)
           .get()) as GraphApiResponse<ConversationMember>;
@@ -784,9 +785,9 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(10)
         .describe("Maximum number of results to return"),
     },
-    async ({ query, limit }) => {
+    async ({ query, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const users = await searchUsers(graphService, query, limit);
+        const users = await searchUsers(graphService, query, limit, extra.requestInfo);
 
         if (users.length === 0) {
           return {

@@ -2,6 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { GraphService } from "../services/graph.js";
 import type { SearchHit, SearchRequest, SearchResponse } from "../types/graph.js";
+import { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 
 export function registerSearchTools(server: McpServer, graphService: GraphService) {
   // Search messages across Teams using Microsoft Search API
@@ -32,9 +34,9 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
         .default(true)
         .describe("Enable relevance-based ranking"),
     },
-    async ({ query, scope, limit, enableTopResults }) => {
+    async ({ query, scope, limit, enableTopResults }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Build the search request
         const searchRequest: SearchRequest = {
@@ -159,9 +161,9 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
       includeChats,
       teamIds,
       keywords,
-    }) => {
+    }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         let attemptedAdvancedSearch = false;
 
@@ -444,9 +446,9 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
         .default("all")
         .describe("Scope of search"),
     },
-    async ({ hours, limit, scope }) => {
+    async ({ hours, limit, scope }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const client = await graphService.getClient();
+        const client = await graphService.getClient(extra.requestInfo);
 
         // Get current user ID first
         const me = await client.api("/me").get();
