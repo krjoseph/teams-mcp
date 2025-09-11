@@ -1,1 +1,1 @@
-web: npx tsx index.ts --transport http --port $PORT
+web: node dist/index.js --transport http --port $PORT
