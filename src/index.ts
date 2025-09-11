@@ -178,7 +178,9 @@ async function startMcpServer(options: ServerOptions) {
 
   // Start server with appropriate transport
   if (options.transport === 'http') {
-    const config = options.port ? { port: options.port } : {};
+    // Prioritize PORT environment variable, then command line argument, then default
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : options.port;
+    const config = port ? { port } : {};
     const httpHandler = new HttpTransportHandler(server, config);
     await httpHandler.connect();
   } else {
@@ -212,6 +214,9 @@ async function main() {
     console.log("Options:");
     console.log("  --transport stdio|http    Transport type (default: stdio)");
     console.log("  --port PORT              Port number for HTTP transport (default: 3000)");
+    console.log("");
+    console.log("Environment Variables:");
+    console.log("  PORT                     Port number for HTTP transport (overrides --port)");
     return;
   }
   
