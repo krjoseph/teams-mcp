@@ -37,34 +37,20 @@ class TransportCache {
       sessionIdGenerator: undefined,
     });
 
-    // Create a new server instance for each transport to avoid conflicts
-    const server = new McpServer({
-      name: "teams-mcp",
-      version: "0.3.3",
-    });
-
-    // Copy request handlers from original server
-    const mainServer = originalServer as any;
-    if (mainServer._requestHandlers) {
-      // Create a new Map to avoid reference issues
-      const handlerMap = new Map(mainServer._requestHandlers);
-      (server as any)._requestHandlers = handlerMap;
-      console.log(`Copied ${handlerMap.size} request handlers to isolated server`);
-    }
-
     const cachedTransport: CachedTransport = {
       transport,
       id: randomUUID(),
       createdAt: Date.now()
     };
 
-    // Connect the new server instance to transport
-    await server.connect(transport);
+    // Connect the original server to the new transport
+    // This allows multiple transports to use the same server instance
+    await originalServer.connect(transport);
     
     // Store in cache with TTL
     this.cache.set(cachedTransport.id, cachedTransport);
     
-    console.log(`Created and cached transport ${cachedTransport.id} with isolated server`);
+    console.log(`Created and cached transport ${cachedTransport.id} with shared server`);
     return cachedTransport;
   }
 

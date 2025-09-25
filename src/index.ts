@@ -161,10 +161,17 @@ async function logout() {
 // MCP Server setup
 async function startMcpServer(options: ServerOptions) {
   // Create MCP server
-  const server = new McpServer({
-    name: "teams-mcp",
-    version: "0.3.3",
-  });
+  const server = new McpServer(
+    {
+      name: "teams-mcp",
+      version: "0.3.3",
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
 
   // Initialize Graph service (singleton)
   const graphService = GraphService.getInstance();
