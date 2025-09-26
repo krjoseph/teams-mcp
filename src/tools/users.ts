@@ -11,6 +11,7 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     "get_current_user",
     "Get the current authenticated user's profile information including display name, email, job title, and department.",
     {},
+    { _meta: { requiredScopes: ["User.Read"] } } as any,
     async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -54,6 +55,7 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     {
       query: z.string().describe("Search query (name or email)"),
     },
+    { _meta: { requiredScopes: ["User.ReadBasic.All"] } } as any,
     async ({ query }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -111,6 +113,7 @@ export function registerUsersTools(server: McpServer, graphService: GraphService
     {
       userId: z.string().describe("User ID or email address"),
     },
+    { _meta: { requiredScopes: ["User.ReadBasic.All"] } } as any,
     async ({ userId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);

@@ -9,6 +9,7 @@ export function registerAuthTools(server: McpServer, graphService: GraphService)
     "auth_status",
     "Check the authentication status of the Microsoft Graph connection. Returns whether the user is authenticated and shows their basic profile information.",
     {},
+    { _meta: { requiredScopes: ["User.Read"] } } as any,
     async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       const status = await graphService.getAuthStatus(extra.requestInfo);
       return {

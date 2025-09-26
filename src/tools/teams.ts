@@ -28,6 +28,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
     "list_teams",
     "List all Microsoft Teams that the current user is a member of. Returns team names, descriptions, and IDs.",
     {},
+    { _meta: { requiredScopes: ["Team.ReadBasic.All"] } } as any,
     async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -80,6 +81,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
     {
       teamId: z.string().describe("Team ID"),
     },
+    { _meta: { requiredScopes: ["Channel.ReadBasic.All"] } } as any,
     async ({ teamId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -142,6 +144,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(20)
         .describe("Number of messages to retrieve (default: 20)"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Read.All"] } } as any,
     async ({ teamId, channelId, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -240,6 +243,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .describe("MIME type of the image (e.g., 'image/jpeg', 'image/png')"),
       imageFileName: z.string().optional().describe("Name for the attached image file"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Send", "User.ReadBasic.All"] } } as any,
     async ({
       teamId,
       channelId,
@@ -436,6 +440,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(20)
         .describe("Number of replies to retrieve (default: 20)"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Read.All"] } } as any,
     async ({ teamId, channelId, messageId, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -537,6 +542,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .describe("MIME type of the image (e.g., 'image/jpeg', 'image/png')"),
       imageFileName: z.string().optional().describe("Name for the attached image file"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Send", "User.ReadBasic.All"] } } as any,
     async ({
       teamId,
       channelId,
@@ -725,6 +731,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
     {
       teamId: z.string().describe("Team ID"),
     },
+    { _meta: { requiredScopes: ["TeamMember.Read.All"] } } as any,
     async ({ teamId }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -785,6 +792,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
         .default(10)
         .describe("Maximum number of results to return"),
     },
+    { _meta: { requiredScopes: ["User.ReadBasic.All"] } } as any,
     async ({ query, limit }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const users = await searchUsers(graphService, query, limit, extra.requestInfo);

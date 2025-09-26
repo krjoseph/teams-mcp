@@ -22,6 +22,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
     "list_chats",
     "List all recent chats (1:1 conversations and group chats) that the current user participates in. Returns chat topics, types, and participant information.",
     {},
+    { _meta: { requiredScopes: ["Chat.ReadBasic"] } } as any,
     async (_args: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         // Build query parameters
@@ -103,6 +104,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .default(true)
         .describe("Sort in descending order (newest first)"),
     },
+    { _meta: { requiredScopes: ["Chat.ReadBasic"] } } as any,
     async ({ chatId, limit, since, until, fromUser, orderBy, descending }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -232,6 +234,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .optional()
         .describe("Array of @mentions to include in the message"),
     },
+    { _meta: { requiredScopes: ["Chat.ReadWrite", "User.ReadBasic.All"] } } as any,
     async ({ chatId, message, importance = "normal", format = "text", mentions }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -346,6 +349,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       userEmails: z.array(z.string()).describe("Array of user email addresses to add to chat"),
       topic: z.string().optional().describe("Chat topic (for group chats)"),
     },
+    { _meta: { requiredScopes: ["Chat.ReadWrite", "User.Read", "User.ReadBasic.All"] } } as any,
     async ({ userEmails, topic }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);

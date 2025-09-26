@@ -34,6 +34,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
         .default(true)
         .describe("Enable relevance-based ranking"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Read.All", "Chat.ReadBasic"] } } as any,
     async ({ query, scope, limit, enableTopResults }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
@@ -150,6 +151,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
       teamIds: z.array(z.string()).optional().describe("Specific team IDs to search in"),
       keywords: z.string().optional().describe("Keywords to search for in message content"),
     },
+    { _meta: { requiredScopes: ["ChannelMessage.Read.All", "Chat.ReadBasic"] } } as any,
     async ({
       hours,
       limit,
@@ -446,6 +448,7 @@ export function registerSearchTools(server: McpServer, graphService: GraphServic
         .default("all")
         .describe("Scope of search"),
     },
+    { _meta: { requiredScopes: ["User.Read", "ChannelMessage.Read.All", "Chat.ReadBasic"] } } as any,
     async ({ hours, limit, scope }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
         const client = await graphService.getClient(extra.requestInfo);
