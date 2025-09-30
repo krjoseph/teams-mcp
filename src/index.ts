@@ -188,7 +188,7 @@ async function startMcpServer(options: ServerOptions) {
     // Prioritize PORT environment variable, then command line argument, then default
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : options.port;
     const config = port ? { port } : {};
-    const httpHandler = new HttpTransportHandler(server, config);
+    const httpHandler = new HttpTransportHandler(config);
     await httpHandler.connect();
   } else {
     const stdioHandler = new StdioTransportHandler(server);
