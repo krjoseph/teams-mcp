@@ -11,7 +11,7 @@ export interface AuthStatus {
 }
 
 interface StoredAuthInfo {
-  clientId: string;
+  clientId?: string;
   authenticated: boolean;
   timestamp: string;
   expiresAt?: string;
@@ -35,9 +35,8 @@ export class GraphService {
   private async initializeClient(): Promise<void> {
     if (this.isInitialized) return;
 
-    try {
-      const authData = await fs.readFile(this.authPath, "utf8");
-      this.authInfo = JSON.parse(authData);
+      try {
+        this.authInfo = await this.getAuthInfo();
 
       if (this.authInfo?.authenticated && this.authInfo?.token) {
         // Check if token is expired
@@ -104,5 +103,19 @@ export class GraphService {
 
   isAuthenticated(): boolean {
     return !!this.client && this.isInitialized;
+  }
+
+  async getAuthInfo(): Promise<StoredAuthInfo> {
+    const authToken = process.env.AUTH_TOKEN;
+    if (authToken) {
+      return {
+        authenticated: true,
+        timestamp: new Date().toISOString(),
+        token: authToken,
+      };
+    }
+
+    const authData = await fs.readFile(this.authPath, "utf8");
+    return JSON.parse(authData);
   }
 }
