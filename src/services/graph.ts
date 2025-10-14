@@ -105,17 +105,46 @@ export class GraphService {
     return !!this.client && this.isInitialized;
   }
 
+  validateToken(token: string): string | undefined {
+    const tokenSplits = token.split('.');
+    if (tokenSplits.length !== 3) {
+      console.error("Invalid JWT token: missing claims");
+      return undefined;
+    }
+
+    const payload = JSON.parse(atob(tokenSplits[1]));
+    if (!payload.aud.contains('https://graph.microsoft.com')) {
+      console.error("Invalid JWT token: Not a valid Microsoft Graph token");
+      return undefined;
+    }
+
+    return token;
+  }
+
   async getAuthInfo(): Promise<StoredAuthInfo> {
     const authToken = process.env.AUTH_TOKEN;
     if (authToken) {
-      return {
+      return this.validateToken(authToken) ? {
         authenticated: true,
         timestamp: new Date().toISOString(),
         token: authToken,
+      } : {
+        authenticated: false,
+        timestamp: new Date().toISOString(),
+        token: ""
       };
     }
 
-    const authData = await fs.readFile(this.authPath, "utf8");
-    return JSON.parse(authData);
+    try {
+      const authData = await fs.readFile(this.authPath, "utf8");
+      return JSON.parse(authData);
+    } catch (error) {
+      console.error(`Error reading auth info from '${this.authPath}':`, error);
+      return {
+        authenticated: false,
+        timestamp: new Date().toISOString(),
+        token: ""
+      };
+    }
   }
 }
