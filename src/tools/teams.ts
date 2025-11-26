@@ -168,6 +168,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
 
         const messageList: MessageSummary[] = response.value.map((message: ChatMessage) => ({
           id: message.id,
+          subject: message.subject,
           content: message.body?.content,
           from: message.from?.user?.displayName,
           createdDateTime: message.createdDateTime,
