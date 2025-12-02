@@ -4,6 +4,12 @@ import http from 'http';
 import { randomUUID } from 'crypto';
 import { sessionStorage } from '../utils/session.js';
 import { LRUCache } from 'lru-cache';
+import { GraphService } from '../services/graph.js';
+import { registerAuthTools } from '../tools/auth.js';
+import { registerChatTools } from '../tools/chats.js';
+import { registerSearchTools } from '../tools/search.js';
+import { registerTeamsTools } from '../tools/teams.js';
+import { registerUsersTools } from '../tools/users.js';
 
 interface CachedTransport {
   transport: StreamableHTTPServerTransport;
@@ -31,11 +37,29 @@ class TransportCache {
     });
   }
 
-  async getTransport(originalServer: McpServer): Promise<CachedTransport> {
+  async getTransport(): Promise<CachedTransport> {
     // Create a new transport for each request
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
+
+    // Create a new server instance for each transport to avoid conflicts
+    const server = new McpServer(
+      { name: 'Microsoft Teams MCP Server', version: '0.3.3' },
+      { capabilities: { tools: {} } }
+    );
+
+    // Get the GraphService singleton to register tools
+    const graphService = GraphService.getInstance();
+
+    // Register all tools on the new server instance
+    registerAuthTools(server, graphService);
+    registerUsersTools(server, graphService);
+    registerTeamsTools(server, graphService);
+    registerChatTools(server, graphService);
+    registerSearchTools(server, graphService);
+
+    console.log('Registered all tools on isolated server instance');
 
     const cachedTransport: CachedTransport = {
       transport,
@@ -43,14 +67,13 @@ class TransportCache {
       createdAt: Date.now()
     };
 
-    // Connect the original server to the new transport
-    // This allows multiple transports to use the same server instance
-    await originalServer.connect(transport);
+    // Connect the new server instance to transport
+    await server.connect(transport);
     
     // Store in cache with TTL
     this.cache.set(cachedTransport.id, cachedTransport);
     
-    console.log(`Created and cached transport ${cachedTransport.id} with shared server`);
+    console.log(`Created and cached transport ${cachedTransport.id} with isolated server`);
     return cachedTransport;
   }
 
@@ -69,7 +92,6 @@ export class HttpTransportHandler {
   private transportCache: TransportCache;
 
   constructor(
-    private server: McpServer,
     private config: HttpTransportConfig = {}
   ) {
     this.transportCache = new TransportCache();
@@ -142,7 +164,7 @@ export class HttpTransportHandler {
         
         // Get a transport from cache (creates new one with TTL)
         console.log(`[${sessionId}] Getting transport from cache`);
-        const cachedTransport = await handler.transportCache.getTransport(this.server);
+        const cachedTransport = await handler.transportCache.getTransport();
         console.log(`[${sessionId}] Using cached transport ${cachedTransport.id}`);
         
         await sessionStorage.run({ sessionId }, async () => {
