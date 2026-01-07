@@ -1,13 +1,10 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { DeviceCodeCredential } from "@azure/identity";
+import { PublicClientApplication, type Configuration } from "@azure/msal-node";
 import { Client } from "@microsoft/microsoft-graph-client";
-import { initializeCachePlugin } from "../auth-plugin.js";
 import { getAuthConfig } from "../config.js";
-
-// Enable persistent token caching (stores refresh tokens)
-initializeCachePlugin();
+import { cachePlugin } from "../msal-cache.js";
 
 export interface AuthStatus {
   isAuthenticated: boolean;
@@ -22,7 +19,7 @@ interface StoredAuthInfo {
   authenticated: boolean;
   timestamp: string;
   expiresAt?: string;
-  token: string;
+  account?: string;
 }
 
 // Scopes for delegated (user) authentication
@@ -41,7 +38,7 @@ const DELEGATED_SCOPES = [
 export class GraphService {
   private static instance: GraphService;
   private client: Client | undefined;
-  private credential: DeviceCodeCredential | undefined;
+  private msalClient: PublicClientApplication | undefined;
   private readonly authPath = join(homedir(), ".msgraph-mcp-auth.json");
   private isInitialized = false;
   private authInfo: StoredAuthInfo | undefined;
@@ -67,36 +64,47 @@ export class GraphService {
         const clientId = this.authInfo.clientId || config.clientId;
         const tenantId = this.authInfo.tenantId || config.tenantId;
 
-        // Create credential with persistent cache - it will use cached refresh token
-        this.credential = new DeviceCodeCredential({
-          clientId,
-          tenantId,
-          tokenCachePersistenceOptions: {
-            enabled: true,
-            name: "teams-mcp-cache",
-            unsafeAllowUnencryptedStorage: true,
+        // Create MSAL client with persistent cache
+        const msalConfig: Configuration = {
+          auth: {
+            clientId,
+            authority: `https://login.microsoftonline.com/${tenantId}`,
           },
-          // Silent callback since we're using cached tokens
-          userPromptCallback: (info) => {
-            console.error("Token refresh required. Please re-authenticate with: npx teams-mcp authenticate");
-            console.error(`Visit: ${info.verificationUri}`);
-            console.error(`Enter code: ${info.userCode}`);
+          cache: {
+            cachePlugin,
           },
-        });
+        };
 
-        // Create Graph client using the credential
+        this.msalClient = new PublicClientApplication(msalConfig);
+
+        // Create Graph client using MSAL for token acquisition
         this.client = Client.initWithMiddleware({
           authProvider: {
             getAccessToken: async () => {
-              if (!this.credential) {
-                throw new Error("No credential available");
+              if (!this.msalClient) {
+                throw new Error("MSAL client not initialized");
               }
-              // This will use cached refresh token to get new access token
-              const token = await this.credential.getToken(DELEGATED_SCOPES);
-              if (!token) {
-                throw new Error("Failed to get access token");
+
+              // Try to get token silently using cached refresh token
+              const accounts = await this.msalClient.getTokenCache().getAllAccounts();
+
+              if (accounts.length > 0) {
+                try {
+                  const result = await this.msalClient.acquireTokenSilent({
+                    account: accounts[0],
+                    scopes: DELEGATED_SCOPES,
+                  });
+
+                  if (result?.accessToken) {
+                    return result.accessToken;
+                  }
+                } catch (error) {
+                  console.error("Silent token acquisition failed, re-authentication required:", error);
+                  throw new Error("Token refresh failed. Please re-authenticate with: npx teams-mcp authenticate");
+                }
               }
-              return token.token;
+
+              throw new Error("No cached account found. Please authenticate with: npx teams-mcp authenticate");
             },
           },
         });
