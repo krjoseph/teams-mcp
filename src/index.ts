@@ -4,9 +4,9 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  PublicClientApplication,
   type AuthenticationResult,
   type Configuration,
+  PublicClientApplication,
 } from "@azure/msal-node";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

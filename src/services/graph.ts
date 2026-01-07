@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { PublicClientApplication, type Configuration } from "@azure/msal-node";
+import { type Configuration, PublicClientApplication } from "@azure/msal-node";
 import { Client } from "@microsoft/microsoft-graph-client";
 import { cachePlugin } from "../msal-cache.js";
 
@@ -96,12 +96,19 @@ export class GraphService {
                     return result.accessToken;
                   }
                 } catch (error) {
-                  console.error("Silent token acquisition failed, re-authentication required:", error);
-                  throw new Error("Token refresh failed. Please re-authenticate with: npx teams-mcp authenticate");
+                  console.error(
+                    "Silent token acquisition failed, re-authentication required:",
+                    error
+                  );
+                  throw new Error(
+                    "Token refresh failed. Please re-authenticate with: npx teams-mcp authenticate"
+                  );
                 }
               }
 
-              throw new Error("No cached account found. Please authenticate with: npx teams-mcp authenticate");
+              throw new Error(
+                "No cached account found. Please authenticate with: npx teams-mcp authenticate"
+              );
             },
           },
         });
