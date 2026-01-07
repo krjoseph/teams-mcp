@@ -3,8 +3,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { PublicClientApplication, type Configuration } from "@azure/msal-node";
 import { Client } from "@microsoft/microsoft-graph-client";
-import { getAuthConfig } from "../config.js";
 import { cachePlugin } from "../msal-cache.js";
+
+// Microsoft Graph CLI app ID (default public client)
+const CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
+const AUTHORITY = "https://login.microsoftonline.com/common";
 
 export interface AuthStatus {
   isAuthenticated: boolean;
@@ -15,7 +18,6 @@ export interface AuthStatus {
 
 interface StoredAuthInfo {
   clientId: string;
-  tenantId?: string;
   authenticated: boolean;
   timestamp: string;
   expiresAt?: string;
@@ -59,16 +61,11 @@ export class GraphService {
       this.authInfo = JSON.parse(authData);
 
       if (this.authInfo?.authenticated) {
-        // Get config (use stored values if available, fall back to env vars)
-        const config = getAuthConfig();
-        const clientId = this.authInfo.clientId || config.clientId;
-        const tenantId = this.authInfo.tenantId || config.tenantId;
-
         // Create MSAL client with persistent cache
         const msalConfig: Configuration = {
           auth: {
-            clientId,
-            authority: `https://login.microsoftonline.com/${tenantId}`,
+            clientId: CLIENT_ID,
+            authority: AUTHORITY,
           },
           cache: {
             cachePlugin,

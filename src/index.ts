@@ -5,17 +5,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   PublicClientApplication,
-  ConfidentialClientApplication,
   type AuthenticationResult,
   type Configuration,
 } from "@azure/msal-node";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  getAuthConfig,
-  logConfigInfo,
-  validateConfig,
-} from "./config.js";
 import { cachePlugin } from "./msal-cache.js";
 import { GraphService } from "./services/graph.js";
 import { registerAuthTools } from "./tools/auth.js";
@@ -24,58 +18,55 @@ import { registerSearchTools } from "./tools/search.js";
 import { registerTeamsTools } from "./tools/teams.js";
 import { registerUsersTools } from "./tools/users.js";
 
+// Microsoft Graph CLI app ID (default public client)
+const CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
+const AUTHORITY = "https://login.microsoftonline.com/common";
+
 const AUTH_INFO_PATH = join(homedir(), ".msgraph-mcp-auth.json");
+
+// Scopes for delegated (user) authentication
+const DELEGATED_SCOPES = [
+  "User.Read",
+  "User.ReadBasic.All",
+  "Team.ReadBasic.All",
+  "Channel.ReadBasic.All",
+  "ChannelMessage.Read.All",
+  "ChannelMessage.Send",
+  "TeamMember.Read.All",
+  "Chat.ReadBasic",
+  "Chat.ReadWrite",
+];
 
 // Authentication functions
 async function authenticate() {
   console.log("🔐 Microsoft Graph Authentication for MCP Server");
   console.log("=".repeat(50));
+  console.log("Using Microsoft Graph CLI app");
 
   try {
-    let result: AuthenticationResult | null = null;
+    console.log("\n📱 Using device code flow...");
 
-    if (config.isConfidentialClient && config.clientSecret) {
-      // Confidential client flow (client credentials)
-      console.log("\n🔒 Using client credentials flow...");
+    const msalConfig: Configuration = {
+      auth: {
+        clientId: CLIENT_ID,
+        authority: AUTHORITY,
+      },
+      cache: {
+        cachePlugin, // Use our custom file-based cache for refresh tokens
+      },
+    };
 
-      const msalConfig: Configuration = {
-        auth: {
-          clientId: config.clientId,
-          authority: config.authority,
-          clientSecret: config.clientSecret,
-        },
-      };
+    const client = new PublicClientApplication(msalConfig);
 
-      const client = new ConfidentialClientApplication(msalConfig);
-      result = await client.acquireTokenByClientCredential({
-        scopes: APP_SCOPE,
-      });
-    } else {
-      // Public client flow (device code)
-      console.log("\n📱 Using device code flow...");
-
-      const msalConfig: Configuration = {
-        auth: {
-          clientId: config.clientId,
-          authority: config.authority,
-        },
-        cache: {
-          cachePlugin, // Use our custom file-based cache
-        },
-      };
-
-      const client = new PublicClientApplication(msalConfig);
-
-      result = await client.acquireTokenByDeviceCode({
-        scopes: DELEGATED_SCOPES,
-        deviceCodeCallback: (response) => {
-          console.log("\n📱 Please complete authentication:");
-          console.log(`🌐 Visit: ${response.verificationUri}`);
-          console.log(`🔑 Enter code: ${response.userCode}`);
-          console.log("\n⏳ Waiting for you to complete authentication...");
-        },
-      });
-    }
+    const result: AuthenticationResult | null = await client.acquireTokenByDeviceCode({
+      scopes: DELEGATED_SCOPES,
+      deviceCodeCallback: (response) => {
+        console.log("\n📱 Please complete authentication:");
+        console.log(`🌐 Visit: ${response.verificationUri}`);
+        console.log(`🔑 Enter code: ${response.userCode}`);
+        console.log("\n⏳ Waiting for you to complete authentication...");
+      },
+    });
 
     if (result) {
       // Save authentication info (for quick status checks)
@@ -97,10 +88,17 @@ async function authenticate() {
       console.log("   The server will automatically use these credentials.");
     }
   } catch (error) {
-    console.error(
-      "\n❌ Authentication failed:",
-      error instanceof Error ? error.message : String(error)
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Provide helpful error messages for common issues
+    if (errorMessage.includes("AADSTS50020")) {
+      console.error("\n❌ Authentication failed: User account not in tenant");
+    } else if (errorMessage.includes("AADSTS65001")) {
+      console.error("\n❌ Authentication failed: Admin consent required");
+      console.error("   Grant admin consent for the required permissions in Azure Portal");
+    } else {
+      console.error("\n❌ Authentication failed:", errorMessage);
+    }
     process.exit(1);
   }
 }
