@@ -6,6 +6,12 @@ import { join } from "node:path";
 import { DeviceCodeCredential } from "@azure/identity";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { initializeCachePlugin } from "./auth-plugin.js";
+import {
+  getAuthConfig,
+  logConfigInfo,
+  validateConfig,
+} from "./config.js";
 import { GraphService } from "./services/graph.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerChatTools } from "./tools/chats.js";
@@ -13,7 +19,9 @@ import { registerSearchTools } from "./tools/search.js";
 import { registerTeamsTools } from "./tools/teams.js";
 import { registerUsersTools } from "./tools/users.js";
 
-const CLIENT_ID = "14d82eec-204b-4c2f-b7e8-296a70dab67e";
+// Enable persistent token caching (stores refresh tokens)
+initializeCachePlugin();
+
 const TOKEN_PATH = join(homedir(), ".msgraph-mcp-auth.json");
 
 // Authentication functions
@@ -22,16 +30,38 @@ async function authenticate() {
   console.log("=".repeat(50));
 
   try {
-    const credential = new DeviceCodeCredential({
-      clientId: CLIENT_ID,
-      tenantId: "common",
-      userPromptCallback: (info) => {
-        console.log("\n📱 Please complete authentication:");
-        console.log(`🌐 Visit: ${info.verificationUri}`);
-        console.log(`🔑 Enter code: ${info.userCode}`);
-        console.log("\n⏳ Waiting for you to complete authentication...");
-      },
-    });
+    let credential: TokenCredential;
+    let scopes: string[];
+
+    if (config.isConfidentialClient && config.clientSecret) {
+      // Confidential client flow (client credentials)
+      console.log("\n🔒 Using client credentials flow...");
+      credential = new ClientSecretCredential(
+        config.tenantId,
+        config.clientId,
+        config.clientSecret
+      );
+      scopes = APP_SCOPE;
+    } else {
+      // Public client flow (device code)
+      console.log("\n📱 Using device code flow...");
+      credential = new DeviceCodeCredential({
+        clientId: config.clientId,
+        tenantId: config.tenantId,
+        tokenCachePersistenceOptions: {
+          enabled: true,
+          name: "teams-mcp-cache",
+          unsafeAllowUnencryptedStorage: true,
+        },
+        userPromptCallback: (info) => {
+          console.log("\n📱 Please complete authentication:");
+          console.log(`🌐 Visit: ${info.verificationUri}`);
+          console.log(`🔑 Enter code: ${info.userCode}`);
+          console.log("\n⏳ Waiting for you to complete authentication...");
+        },
+      });
+      scopes = DELEGATED_SCOPES;
+    }
 
     // Get the actual token
     const token = await credential.getToken([

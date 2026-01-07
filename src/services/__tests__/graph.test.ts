@@ -1,7 +1,18 @@
 import { promises as fs } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mockUser, server } from "../../test-utils/setup.js";
-import { GraphService } from "../graph.js";
+
+// Mock the auth plugin before importing GraphService
+vi.mock("../../auth-plugin.js", () => ({
+  initializeCachePlugin: vi.fn(),
+}));
+
+// Mock @azure/identity
+vi.mock("@azure/identity", () => ({
+  DeviceCodeCredential: vi.fn().mockImplementation(() => ({
+    getToken: vi.fn().mockResolvedValue({ token: "mock-token" }),
+  })),
+}));
 
 // Mock the filesystem
 vi.mock("node:fs", () => ({
@@ -18,6 +29,9 @@ vi.mock("@microsoft/microsoft-graph-client", () => ({
     initWithMiddleware: vi.fn(),
   },
 }));
+
+// Import after mocks are set up
+import { GraphService } from "../graph.js";
 
 describe("GraphService", () => {
   let graphService: GraphService;
