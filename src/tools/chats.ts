@@ -83,10 +83,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       limit: z
         .number()
         .min(1)
-        .max(500)
+        .max(2000)
         .optional()
         .default(20)
-        .describe("Number of messages to retrieve (default: 20, max: 500)"),
+        .describe("Number of messages to retrieve (default: 20, max: 2000)"),
       since: z.string().optional().describe("Get messages since this ISO datetime"),
       until: z.string().optional().describe("Get messages until this ISO datetime"),
       fromUser: z.string().optional().describe("Filter messages from specific user ID"),
@@ -145,7 +145,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         const allMessages: ChatMessage[] = [];
         let nextLink: string | undefined;
         let pageCount = 0;
-        const maxPages = 20; // Safety limit to prevent infinite loops
+        const maxPages = 100; // Safety limit to prevent infinite loops
 
         // First request
         let response = (await client
