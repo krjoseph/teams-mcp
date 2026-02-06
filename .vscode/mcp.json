@@ -1,0 +1,10 @@
+{
+    "servers": {
+        "teams-mcp-dev": {
+            "command": "node",
+            "args": [
+                "dist/index.js"
+            ]
+        }
+    }
+}

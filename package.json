@@ -19,7 +19,7 @@
     "build": "npm run clean && npm run compile",
     "clean": "rm -rf dist",
     "compile": "tsc",
-    "dev": "node --watch src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "auth": "node dist/index.js authenticate",
     "auth:check": "node dist/index.js check",
     "auth:logout": "node dist/index.js logout",
@@ -72,6 +72,7 @@
     "msw": "^2.12.8",
     "nock": "^14.0.10",
     "sinon": "^21.0.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
