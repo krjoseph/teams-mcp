@@ -74,7 +74,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
     }
   );
 
-  // Get chat messages
+  // Get chat messages with pagination support
   server.tool(
     "get_chat_messages",
     "Retrieve recent messages from a specific chat conversation. Returns message content, sender information, and timestamps.",
@@ -83,10 +83,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       limit: z
         .number()
         .min(1)
-        .max(50)
+        .max(2000)
         .optional()
         .default(20)
-        .describe("Number of messages to retrieve"),
+        .describe("Number of messages to retrieve (default: 20, max: 2000)"),
       since: z.string().optional().describe("Get messages since this ISO datetime"),
       until: z.string().optional().describe("Get messages until this ISO datetime"),
       fromUser: z.string().optional().describe("Filter messages from specific user ID"),
@@ -100,28 +100,45 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .optional()
         .default(true)
         .describe("Sort in descending order (newest first)"),
+      fetchAll: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "Fetch all messages using pagination (up to limit). When true, follows @odata.nextLink to get more messages."
+        ),
     },
-    async ({ chatId, limit, since, until, fromUser, orderBy, descending }) => {
+    async ({ chatId, limit, since, until, fromUser, orderBy, descending, fetchAll }) => {
       try {
         const client = await graphService.getClient();
 
-        // Build query parameters
-        const queryParams: string[] = [`$top=${limit}`];
+        // Apply defaults for parameters (in case Zod validation is bypassed)
+        const effectiveLimit = limit ?? 20;
+        const effectiveOrderBy = orderBy ?? "createdDateTime";
+        const effectiveDescending = descending ?? true;
+        const effectiveFetchAll = fetchAll ?? false;
+
+        // Build query parameters - use smaller page size for pagination
+        const pageSize = effectiveFetchAll ? 50 : Math.min(effectiveLimit, 50);
+        const queryParams: string[] = [`$top=${pageSize}`];
 
         // Add ordering - Graph API only supports descending order for datetime fields in chat messages
-        if ((orderBy === "createdDateTime" || orderBy === "lastModifiedDateTime") && !descending) {
+        if (
+          (effectiveOrderBy === "createdDateTime" || effectiveOrderBy === "lastModifiedDateTime") &&
+          !effectiveDescending
+        ) {
           return {
             content: [
               {
                 type: "text",
-                text: `❌ Error: QueryOptions to order by '${orderBy === "createdDateTime" ? "CreatedDateTime" : "LastModifiedDateTime"}' in 'Ascending' direction is not supported.`,
+                text: `❌ Error: QueryOptions to order by '${effectiveOrderBy === "createdDateTime" ? "CreatedDateTime" : "LastModifiedDateTime"}' in 'Ascending' direction is not supported.`,
               },
             ],
           };
         }
 
-        const sortDirection = descending ? "desc" : "asc";
-        queryParams.push(`$orderby=${orderBy} ${sortDirection}`);
+        const sortDirection = effectiveDescending ? "desc" : "asc";
+        queryParams.push(`$orderby=${effectiveOrderBy} ${sortDirection}`);
 
         // Add filters (only user filter is supported reliably)
         const filters: string[] = [];
@@ -135,11 +152,44 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
 
         const queryString = queryParams.join("&");
 
-        const response = (await client
+        // Fetch messages with pagination support
+        const allMessages: ChatMessage[] = [];
+        let nextLink: string | undefined;
+        let pageCount = 0;
+        const maxPages = 100; // Safety limit to prevent infinite loops
+
+        // First request
+        let response = (await client
           .api(`/me/chats/${chatId}/messages?${queryString}`)
           .get()) as GraphApiResponse<ChatMessage>;
 
-        if (!response?.value?.length) {
+        if (response?.value) {
+          allMessages.push(...response.value);
+        }
+
+        // Follow pagination if fetchAll is enabled
+        if (effectiveFetchAll) {
+          nextLink = response["@odata.nextLink"];
+
+          while (nextLink && allMessages.length < effectiveLimit && pageCount < maxPages) {
+            pageCount++;
+
+            try {
+              response = (await client.api(nextLink).get()) as GraphApiResponse<ChatMessage>;
+
+              if (response?.value) {
+                allMessages.push(...response.value);
+              }
+
+              nextLink = response["@odata.nextLink"];
+            } catch (pageError) {
+              console.error(`Error fetching page ${pageCount}:`, pageError);
+              break;
+            }
+          }
+        }
+
+        if (allMessages.length === 0) {
           return {
             content: [
               {
@@ -151,10 +201,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         }
 
         // Apply client-side date filtering since server-side filtering is not supported
-        let filteredMessages = response.value;
+        let filteredMessages = allMessages;
 
         if (since || until) {
-          filteredMessages = response.value.filter((message: ChatMessage) => {
+          filteredMessages = allMessages.filter((message: ChatMessage) => {
             if (!message.createdDateTime) return true;
 
             const messageDate = new Date(message.createdDateTime);
@@ -170,7 +220,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
           });
         }
 
-        const messageList: MessageSummary[] = filteredMessages.map((message: ChatMessage) => ({
+        // Apply limit after filtering
+        const limitedMessages = filteredMessages.slice(0, effectiveLimit);
+
+        const messageList: MessageSummary[] = limitedMessages.map((message: ChatMessage) => ({
           id: message.id,
           content: message.body?.content,
           from: message.from?.user?.displayName,
@@ -185,8 +238,11 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
                 {
                   filters: { since, until, fromUser },
                   filteringMethod: since || until ? "client-side" : "server-side",
+                  paginationEnabled: fetchAll,
+                  pagesRetrieved: pageCount + 1,
+                  totalRetrieved: allMessages.length,
                   totalReturned: messageList.length,
-                  hasMore: !!response["@odata.nextLink"],
+                  hasMore: !!response["@odata.nextLink"] || filteredMessages.length > limit,
                   messages: messageList,
                 },
                 null,

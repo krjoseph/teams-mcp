@@ -190,7 +190,7 @@ describe("Chat Tools", () => {
       });
 
       expect(mockClient.api).toHaveBeenCalledWith(
-        "/me/chats/chat123/messages?$top=undefined&$orderby=undefined asc"
+        "/me/chats/chat123/messages?$top=20&$orderby=createdDateTime desc"
       );
 
       const parsedResponse = JSON.parse(result.content[0].text);
@@ -318,6 +318,265 @@ describe("Chat Tools", () => {
       const result = await getChatMessagesHandler({ chatId: "chat123" });
 
       expect(result.content[0].text).toBe("❌ Error: Chat not found");
+    });
+
+    describe("pagination", () => {
+      it("should fetch single page when fetchAll is false", async () => {
+        const mockMessages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const mockApiChain = {
+          get: vi.fn().mockResolvedValue({
+            value: mockMessages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage",
+          }),
+        };
+        mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+        const result = await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 100,
+          fetchAll: false,
+        });
+
+        // Should only call API once
+        expect(mockClient.api).toHaveBeenCalledTimes(1);
+
+        const parsedResponse = JSON.parse(result.content[0].text);
+        expect(parsedResponse.messages).toHaveLength(50);
+      });
+
+      it("should fetch multiple pages when fetchAll is true", async () => {
+        const page1Messages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const page2Messages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i + 50}`,
+          body: { content: `Message ${i + 50}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - (i + 50) * 1000).toISOString(),
+        }));
+
+        const page3Messages = Array.from({ length: 30 }, (_, i) => ({
+          id: `msg${i + 100}`,
+          body: { content: `Message ${i + 100}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - (i + 100) * 1000).toISOString(),
+        }));
+
+        const mockApiChain1 = {
+          get: vi.fn().mockResolvedValue({
+            value: page1Messages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage2",
+          }),
+        };
+
+        const mockApiChain2 = {
+          get: vi.fn().mockResolvedValue({
+            value: page2Messages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage3",
+          }),
+        };
+
+        const mockApiChain3 = {
+          get: vi.fn().mockResolvedValue({
+            value: page3Messages,
+            "@odata.nextLink": undefined, // No more pages
+          }),
+        };
+
+        mockClient.api = vi
+          .fn()
+          .mockReturnValueOnce(mockApiChain1)
+          .mockReturnValueOnce(mockApiChain2)
+          .mockReturnValueOnce(mockApiChain3);
+
+        const result = await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 200,
+          fetchAll: true,
+        });
+
+        // Should call API three times (initial + 2 pagination calls)
+        expect(mockClient.api).toHaveBeenCalledTimes(3);
+
+        const parsedResponse = JSON.parse(result.content[0].text);
+        expect(parsedResponse.messages).toHaveLength(130); // 50 + 50 + 30
+      });
+
+      it("should stop fetching when limit is reached", async () => {
+        const page1Messages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const page2Messages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i + 50}`,
+          body: { content: `Message ${i + 50}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - (i + 50) * 1000).toISOString(),
+        }));
+
+        const mockApiChain1 = {
+          get: vi.fn().mockResolvedValue({
+            value: page1Messages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage2",
+          }),
+        };
+
+        const mockApiChain2 = {
+          get: vi.fn().mockResolvedValue({
+            value: page2Messages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage3",
+          }),
+        };
+
+        mockClient.api = vi
+          .fn()
+          .mockReturnValueOnce(mockApiChain1)
+          .mockReturnValueOnce(mockApiChain2);
+
+        const result = await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 75,
+          fetchAll: true,
+        });
+
+        // Should only call API twice because limit is reached
+        expect(mockClient.api).toHaveBeenCalledTimes(2);
+
+        const parsedResponse = JSON.parse(result.content[0].text);
+        // Should be limited to 75 messages even though 100 were fetched
+        expect(parsedResponse.messages).toHaveLength(75);
+      });
+
+      it("should stop pagination when no nextLink is present", async () => {
+        const mockMessages = Array.from({ length: 30 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const mockApiChain = {
+          get: vi.fn().mockResolvedValue({
+            value: mockMessages,
+            "@odata.nextLink": undefined, // No more pages
+          }),
+        };
+        mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+        const result = await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 100,
+          fetchAll: true,
+        });
+
+        // Should only call API once since there's no nextLink
+        expect(mockClient.api).toHaveBeenCalledTimes(1);
+
+        const parsedResponse = JSON.parse(result.content[0].text);
+        expect(parsedResponse.messages).toHaveLength(30);
+      });
+
+      it("should handle pagination errors gracefully", async () => {
+        const page1Messages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const mockApiChain1 = {
+          get: vi.fn().mockResolvedValue({
+            value: page1Messages,
+            "@odata.nextLink": "https://graph.microsoft.com/v1.0/nextPage2",
+          }),
+        };
+
+        const mockApiChain2 = {
+          get: vi.fn().mockRejectedValue(new Error("Network error")),
+        };
+
+        mockClient.api = vi
+          .fn()
+          .mockReturnValueOnce(mockApiChain1)
+          .mockReturnValueOnce(mockApiChain2);
+
+        const result = await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 100,
+          fetchAll: true,
+        });
+
+        // Should return the messages from the first page even though second page failed
+        const parsedResponse = JSON.parse(result.content[0].text);
+        expect(parsedResponse.messages).toHaveLength(50);
+      });
+
+      it("should use smaller page size when fetchAll is true", async () => {
+        const mockMessages = Array.from({ length: 50 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const mockApiChain = {
+          get: vi.fn().mockResolvedValue({
+            value: mockMessages,
+          }),
+        };
+        mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+        await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 100,
+          fetchAll: true,
+        });
+
+        // Should use page size of 50 instead of the full limit
+        expect(mockClient.api).toHaveBeenCalledWith(
+          "/me/chats/chat123/messages?$top=50&$orderby=createdDateTime desc"
+        );
+      });
+
+      it("should use limit as page size when fetchAll is false and limit is small", async () => {
+        const mockMessages = Array.from({ length: 10 }, (_, i) => ({
+          id: `msg${i}`,
+          body: { content: `Message ${i}` },
+          from: { user: { displayName: "User" } },
+          createdDateTime: new Date(Date.now() - i * 1000).toISOString(),
+        }));
+
+        const mockApiChain = {
+          get: vi.fn().mockResolvedValue({
+            value: mockMessages,
+          }),
+        };
+        mockClient.api = vi.fn().mockReturnValue(mockApiChain);
+
+        await getChatMessagesHandler({
+          chatId: "chat123",
+          limit: 10,
+          fetchAll: false,
+        });
+
+        // Should use limit (10) as page size since it's smaller than 50
+        expect(mockClient.api).toHaveBeenCalledWith(
+          "/me/chats/chat123/messages?$top=10&$orderby=createdDateTime desc"
+        );
+      });
     });
   });
 
