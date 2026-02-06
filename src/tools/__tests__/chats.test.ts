@@ -441,7 +441,10 @@ describe("Chat Tools", () => {
           }),
         };
 
-        mockClient.api = vi.fn().mockReturnValueOnce(mockApiChain1).mockReturnValueOnce(mockApiChain2);
+        mockClient.api = vi
+          .fn()
+          .mockReturnValueOnce(mockApiChain1)
+          .mockReturnValueOnce(mockApiChain2);
 
         const result = await getChatMessagesHandler({
           chatId: "chat123",
@@ -505,7 +508,10 @@ describe("Chat Tools", () => {
           get: vi.fn().mockRejectedValue(new Error("Network error")),
         };
 
-        mockClient.api = vi.fn().mockReturnValueOnce(mockApiChain1).mockReturnValueOnce(mockApiChain2);
+        mockClient.api = vi
+          .fn()
+          .mockReturnValueOnce(mockApiChain1)
+          .mockReturnValueOnce(mockApiChain2);
 
         const result = await getChatMessagesHandler({
           chatId: "chat123",

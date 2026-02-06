@@ -124,8 +124,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
 
         // Add ordering - Graph API only supports descending order for datetime fields in chat messages
         if (
-          (effectiveOrderBy === "createdDateTime" ||
-            effectiveOrderBy === "lastModifiedDateTime") &&
+          (effectiveOrderBy === "createdDateTime" || effectiveOrderBy === "lastModifiedDateTime") &&
           !effectiveDescending
         ) {
           return {
