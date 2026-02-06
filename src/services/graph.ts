@@ -15,7 +15,7 @@ interface StoredAuthInfo {
   authenticated: boolean;
   timestamp: string;
   expiresAt?: string;
-  token: string;
+  token?: string;
 }
 
 export class GraphService {
@@ -35,8 +35,8 @@ export class GraphService {
   private async initializeClient(): Promise<void> {
     if (this.isInitialized) return;
 
-      try {
-        this.authInfo = await this.getAuthInfo();
+    try {
+      this.authInfo = await this.getAuthInfo();
 
       if (this.authInfo?.authenticated && this.authInfo?.token) {
         // Check if token is expired
@@ -106,15 +106,22 @@ export class GraphService {
   }
 
   validateToken(token: string): string | undefined {
-    const tokenSplits = token.split('.');
+    const tokenSplits = token.split(".");
     if (tokenSplits.length !== 3) {
       console.error("Invalid JWT token: missing claims");
       return undefined;
     }
 
-    const payload = JSON.parse(atob(tokenSplits[1]));
-    if (!payload.aud.contains('https://graph.microsoft.com')) {
-      console.error("Invalid JWT token: Not a valid Microsoft Graph token");
+    try {
+      const payload = JSON.parse(atob(tokenSplits[1]));
+      // aud can be a string or an array
+      const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+      if (!audiences.includes("https://graph.microsoft.com")) {
+        console.error("Invalid JWT token: Not a valid Microsoft Graph token");
+        return undefined;
+      }
+    } catch (error) {
+      console.error("Invalid JWT token: Failed to parse payload", error);
       return undefined;
     }
 
@@ -124,15 +131,17 @@ export class GraphService {
   async getAuthInfo(): Promise<StoredAuthInfo> {
     const authToken = process.env.AUTH_TOKEN;
     if (authToken) {
-      return this.validateToken(authToken) ? {
-        authenticated: true,
-        timestamp: new Date().toISOString(),
-        token: authToken,
-      } : {
-        authenticated: false,
-        timestamp: new Date().toISOString(),
-        token: ""
-      };
+      return this.validateToken(authToken)
+        ? {
+            authenticated: true,
+            timestamp: new Date().toISOString(),
+            token: authToken,
+          }
+        : {
+            authenticated: false,
+            timestamp: new Date().toISOString(),
+            token: "",
+          };
     }
 
     try {
@@ -143,7 +152,7 @@ export class GraphService {
       return {
         authenticated: false,
         timestamp: new Date().toISOString(),
-        token: ""
+        token: "",
       };
     }
   }

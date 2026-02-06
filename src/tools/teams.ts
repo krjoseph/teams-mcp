@@ -835,4 +835,207 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
       }
     }
   );
+
+  // Download hosted content (images) from a Teams message
+  server.tool(
+    "download_message_hosted_content",
+    "Download hosted content (such as images) from a Teams channel message. Returns the content as base64 encoded data along with metadata. Use this to retrieve images or other inline content embedded in messages.",
+    {
+      teamId: z.string().describe("Team ID"),
+      channelId: z.string().describe("Channel ID"),
+      messageId: z.string().describe("Message ID containing the hosted content"),
+      hostedContentId: z
+        .string()
+        .optional()
+        .describe(
+          "Specific hosted content ID to download. If not provided, downloads all hosted contents from the message."
+        ),
+      savePath: z
+        .string()
+        .optional()
+        .describe(
+          "Optional file path to save the content. Supports UNC paths (e.g., \\\\wsl.localhost\\Ubuntu\\tmp\\file.png)."
+        ),
+    },
+    async ({ teamId, channelId, messageId, hostedContentId, savePath }) => {
+      try {
+        const client = await graphService.getClient();
+
+        // First, get the message to find hosted content references
+        const message = (await client
+          .api(`/teams/${teamId}/channels/${channelId}/messages/${messageId}`)
+          .get()) as ChatMessage;
+
+        if (!message) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "❌ Message not found.",
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Extract hosted content IDs from the message body
+        const bodyContent = message.body?.content || "";
+        const hostedContentRegex = /hostedContents\/([a-zA-Z0-9_=-]+)\/\$value|itemid="([^"]+)"/gi;
+        const matches: string[] = [];
+        let match: RegExpExecArray | null;
+
+        // biome-ignore lint/suspicious/noAssignInExpressions: needed for regex extraction
+        while ((match = hostedContentRegex.exec(bodyContent)) !== null) {
+          const contentId = match[1] || match[2];
+          if (contentId && !matches.includes(contentId)) {
+            matches.push(contentId);
+          }
+        }
+
+        if (matches.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "❌ No hosted content found in this message.",
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // If a specific hosted content ID is provided, filter to just that one
+        const contentIds = hostedContentId ? [hostedContentId] : matches;
+
+        // Download each hosted content
+        const results: Array<{
+          id: string;
+          contentType: string;
+          size: number;
+          base64Data?: string;
+          savedTo?: string;
+          error?: string;
+        }> = [];
+
+        for (const contentId of contentIds) {
+          try {
+            // Get the hosted content binary data
+            const response = await client
+              .api(
+                `/teams/${teamId}/channels/${channelId}/messages/${messageId}/hostedContents/${contentId}/$value`
+              )
+              .responseType("arraybuffer" as any)
+              .get();
+
+            // Convert ArrayBuffer to Buffer and then to base64
+            const buffer = Buffer.from(response as ArrayBuffer);
+            const base64Data = buffer.toString("base64");
+
+            // Determine content type from the response or default to image/png
+            const contentType = "image/png"; // Graph API doesn't return content-type header easily
+
+            const result: {
+              id: string;
+              contentType: string;
+              size: number;
+              base64Data?: string;
+              savedTo?: string;
+            } = {
+              id: contentId,
+              contentType,
+              size: buffer.length,
+            };
+
+            // If savePath is provided, save the file
+            if (savePath) {
+              const fs = await import("node:fs/promises");
+              const path = await import("node:path");
+
+              // Debug: log the savePath to stderr
+              console.error(`[DEBUG] savePath received: "${savePath}"`);
+
+              // Normalize path: JSON escaping can cause double backslashes (4 chars -> 2 chars)
+              // \\\\wsl.localhost\\... -> \\wsl.localhost\...
+              const normalizedPath = savePath.replace(/\\\\/g, "\\");
+              console.error(`[DEBUG] normalizedPath after fix: "${normalizedPath}"`);
+
+              // Check if path starts with \\ (UNC on Windows) or //
+              const isUncPath =
+                normalizedPath.startsWith("\\\\") || normalizedPath.startsWith("//");
+              console.error(`[DEBUG] isUncPath: ${isUncPath}`);
+
+              // If multiple files, append index to filename
+              let finalPath = normalizedPath;
+              if (contentIds.length > 1) {
+                const ext = path.extname(normalizedPath);
+                const base = ext ? normalizedPath.slice(0, -ext.length) : normalizedPath;
+                const index = contentIds.indexOf(contentId);
+                finalPath = `${base}_${index}${ext}`;
+              }
+
+              // For UNC paths, don't use path.resolve as it can mess up the path
+              const targetPath = isUncPath ? finalPath : path.resolve(finalPath);
+              console.error(`[DEBUG] targetPath: "${targetPath}"`);
+
+              await fs.writeFile(targetPath, buffer);
+              result.savedTo = targetPath;
+            } else {
+              // Return base64 data if not saving to file
+              result.base64Data = base64Data;
+            }
+
+            results.push(result);
+          } catch (downloadError) {
+            const errorMsg =
+              downloadError instanceof Error ? downloadError.message : "Unknown error";
+            results.push({
+              id: contentId,
+              contentType: "unknown",
+              size: 0,
+              error: errorMsg,
+            });
+          }
+        }
+
+        // Build response
+        const successCount = results.filter((r) => !r.error).length;
+        const errorCount = results.filter((r) => r.error).length;
+
+        let summary = `📥 Downloaded ${successCount} of ${contentIds.length} hosted content(s)`;
+        if (errorCount > 0) {
+          summary += ` (${errorCount} failed)`;
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  summary,
+                  messageId,
+                  totalContentItems: contentIds.length,
+                  successCount,
+                  errorCount,
+                  contents: results,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: `❌ Error: ${errorMessage}`,
+            },
+          ],
+        };
+      }
+    }
+  );
 }

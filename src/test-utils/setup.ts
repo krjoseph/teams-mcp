@@ -315,7 +315,7 @@ afterEach(() => {
 
 // Helper function to create mock authenticated GraphService
 export function createMockGraphService() {
-  const GraphService = vi.fn().mockImplementation(() => ({
+  return {
     getInstance: vi.fn().mockReturnThis(),
     getAuthStatus: vi.fn().mockResolvedValue({
       isAuthenticated: true,
@@ -331,23 +331,19 @@ export function createMockGraphService() {
       }),
     }),
     isAuthenticated: vi.fn().mockReturnValue(true),
-  }));
-
-  return new GraphService();
+  };
 }
 
 // Helper function to create mock unauthenticated GraphService
 export function createMockUnauthenticatedGraphService() {
-  const GraphService = vi.fn().mockImplementation(() => ({
+  return {
     getInstance: vi.fn().mockReturnThis(),
     getAuthStatus: vi.fn().mockResolvedValue({
       isAuthenticated: false,
     }),
     getClient: vi.fn().mockRejectedValue(new Error("Not authenticated")),
     isAuthenticated: vi.fn().mockReturnValue(false),
-  }));
-
-  return new GraphService();
+  };
 }
 
 // Helper function to create mock MCP server
