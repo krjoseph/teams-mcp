@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.13.0",
+    "@azure/identity-cache-persistence": "^1.2.0",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@microsoft/microsoft-graph-types": "^2.43.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
