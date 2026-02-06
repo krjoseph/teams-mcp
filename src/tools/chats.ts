@@ -104,7 +104,9 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         .boolean()
         .optional()
         .default(false)
-        .describe("Fetch all messages using pagination (up to limit). When true, follows @odata.nextLink to get more messages."),
+        .describe(
+          "Fetch all messages using pagination (up to limit). When true, follows @odata.nextLink to get more messages."
+        ),
     },
     async ({ chatId, limit, since, until, fromUser, orderBy, descending, fetchAll }) => {
       try {
@@ -159,17 +161,17 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         // Follow pagination if fetchAll is enabled
         if (fetchAll) {
           nextLink = response["@odata.nextLink"];
-          
+
           while (nextLink && allMessages.length < limit && pageCount < maxPages) {
             pageCount++;
-            
+
             try {
               response = (await client.api(nextLink).get()) as GraphApiResponse<ChatMessage>;
-              
+
               if (response?.value) {
                 allMessages.push(...response.value);
               }
-              
+
               nextLink = response["@odata.nextLink"];
             } catch (pageError) {
               console.error(`Error fetching page ${pageCount}:`, pageError);
