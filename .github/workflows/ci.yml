@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -12,18 +12,18 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20, 22]
-    
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -34,7 +34,7 @@ jobs:
       - name: Run linting and formatting
         run: |
           # Install and run Biome directly
-          npx @biomejs/biome@1.9.4 check .
+          npx @biomejs/biome check .
 
       - name: Run type checking
         run: npm run compile
@@ -66,7 +66,7 @@ jobs:
       - name: Test CLI functionality
         run: |
           node dist/index.js --help
-          node dist/index.js check 
+          node dist/index.js check
 
       - name: Security audit
         run: npm audit --audit-level moderate
