@@ -112,24 +112,34 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
       try {
         const client = await graphService.getClient();
 
+        // Apply defaults for parameters (in case Zod validation is bypassed)
+        const effectiveLimit = limit ?? 20;
+        const effectiveOrderBy = orderBy ?? "createdDateTime";
+        const effectiveDescending = descending ?? true;
+        const effectiveFetchAll = fetchAll ?? false;
+
         // Build query parameters - use smaller page size for pagination
-        const pageSize = fetchAll ? 50 : Math.min(limit, 50);
+        const pageSize = effectiveFetchAll ? 50 : Math.min(effectiveLimit, 50);
         const queryParams: string[] = [`$top=${pageSize}`];
 
         // Add ordering - Graph API only supports descending order for datetime fields in chat messages
-        if ((orderBy === "createdDateTime" || orderBy === "lastModifiedDateTime") && !descending) {
+        if (
+          (effectiveOrderBy === "createdDateTime" ||
+            effectiveOrderBy === "lastModifiedDateTime") &&
+          !effectiveDescending
+        ) {
           return {
             content: [
               {
                 type: "text",
-                text: `❌ Error: QueryOptions to order by '${orderBy === "createdDateTime" ? "CreatedDateTime" : "LastModifiedDateTime"}' in 'Ascending' direction is not supported.`,
+                text: `❌ Error: QueryOptions to order by '${effectiveOrderBy === "createdDateTime" ? "CreatedDateTime" : "LastModifiedDateTime"}' in 'Ascending' direction is not supported.`,
               },
             ],
           };
         }
 
-        const sortDirection = descending ? "desc" : "asc";
-        queryParams.push(`$orderby=${orderBy} ${sortDirection}`);
+        const sortDirection = effectiveDescending ? "desc" : "asc";
+        queryParams.push(`$orderby=${effectiveOrderBy} ${sortDirection}`);
 
         // Add filters (only user filter is supported reliably)
         const filters: string[] = [];
@@ -159,10 +169,10 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         }
 
         // Follow pagination if fetchAll is enabled
-        if (fetchAll) {
+        if (effectiveFetchAll) {
           nextLink = response["@odata.nextLink"];
 
-          while (nextLink && allMessages.length < limit && pageCount < maxPages) {
+          while (nextLink && allMessages.length < effectiveLimit && pageCount < maxPages) {
             pageCount++;
 
             try {
@@ -212,7 +222,7 @@ export function registerChatTools(server: McpServer, graphService: GraphService)
         }
 
         // Apply limit after filtering
-        const limitedMessages = filteredMessages.slice(0, limit);
+        const limitedMessages = filteredMessages.slice(0, effectiveLimit);
 
         const messageList: MessageSummary[] = limitedMessages.map((message: ChatMessage) => ({
           id: message.id,
