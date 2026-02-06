@@ -880,8 +880,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
 
         // Extract hosted content IDs from the message body
         const bodyContent = message.body?.content || "";
-        const hostedContentRegex =
-          /hostedContents\/([a-zA-Z0-9_=-]+)\/\$value|itemid="([^"]+)"/gi;
+        const hostedContentRegex = /hostedContents\/([a-zA-Z0-9_=-]+)\/\$value|itemid="([^"]+)"/gi;
         const matches: string[] = [];
         let match: RegExpExecArray | null;
 
@@ -954,16 +953,17 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
 
               // Debug: log the savePath to stderr
               console.error(`[DEBUG] savePath received: "${savePath}"`);
-              
+
               // Normalize path: JSON escaping can cause double backslashes (4 chars -> 2 chars)
               // \\\\wsl.localhost\\... -> \\wsl.localhost\...
-              let normalizedPath = savePath.replace(/\\\\/g, '\\');
+              const normalizedPath = savePath.replace(/\\\\/g, "\\");
               console.error(`[DEBUG] normalizedPath after fix: "${normalizedPath}"`);
-              
-              // Check if path starts with \\ (UNC on Windows) or // 
-              const isUncPath = normalizedPath.startsWith("\\\\") || normalizedPath.startsWith("//");
+
+              // Check if path starts with \\ (UNC on Windows) or //
+              const isUncPath =
+                normalizedPath.startsWith("\\\\") || normalizedPath.startsWith("//");
               console.error(`[DEBUG] isUncPath: ${isUncPath}`);
-              
+
               // If multiple files, append index to filename
               let finalPath = normalizedPath;
               if (contentIds.length > 1) {
@@ -976,7 +976,7 @@ export function registerTeamsTools(server: McpServer, graphService: GraphService
               // For UNC paths, don't use path.resolve as it can mess up the path
               const targetPath = isUncPath ? finalPath : path.resolve(finalPath);
               console.error(`[DEBUG] targetPath: "${targetPath}"`);
-              
+
               await fs.writeFile(targetPath, buffer);
               result.savedTo = targetPath;
             } else {
